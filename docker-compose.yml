@@ -1,0 +1,17 @@
+version: '3.8'
+
+# Utilise .env.local pour les variables d'environnement
+# Lancer avec: docker-compose --env-file .env.local up -d
+
+services:
+  # Frontend React
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001/api}
+    container_name: stock-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
