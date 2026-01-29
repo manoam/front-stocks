@@ -11,22 +11,25 @@ RUN npm ci
 COPY . .
 
 # Build argument for API URL
-ARG VITE_API_URL=http://localhost:3001/api
+ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build the app
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine AS production
+# Production stage - use serve for Railway
+FROM node:20-alpine AS production
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+
+# Install serve globally
+RUN npm install -g serve
 
 # Copy built files
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist ./dist
 
-# Expose port
-EXPOSE 80
+# Expose port (Railway uses PORT env variable)
+EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+# Start server - Railway will set PORT
+CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
