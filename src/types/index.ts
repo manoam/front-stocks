@@ -80,6 +80,7 @@ export interface Product {
   updatedAt: string;
   productSuppliers?: ProductSupplier[];
   stocks?: Stock[];
+  movements?: StockMovement[];
 }
 
 export interface StockMovement {
