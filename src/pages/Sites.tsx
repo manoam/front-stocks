@@ -6,11 +6,13 @@ import Badge from '../components/ui/Badge';
 import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import SiteForm from '../components/forms/SiteForm';
+import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
 import type { Site, ApiResponse } from '../types';
 
 export default function Sites() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | undefined>();
@@ -36,7 +38,12 @@ export default function Sites() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sites'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setDeleteConfirm(null);
+      toast.success('Site supprimé', 'Le site a été supprimé avec succès');
+    },
+    onError: () => {
+      toast.error('Erreur', 'Impossible de supprimer le site');
     },
   });
 
@@ -55,8 +62,12 @@ export default function Sites() {
     setSelectedSite(undefined);
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = (isEdit: boolean) => {
     handleModalClose();
+    toast.success(
+      isEdit ? 'Site modifié' : 'Site créé',
+      isEdit ? 'Le site a été mis à jour avec succès' : 'Le site a été créé avec succès'
+    );
   };
 
   const getSiteTypeIcon = (type: string) => {
@@ -198,7 +209,7 @@ export default function Sites() {
       >
         <SiteForm
           site={selectedSite}
-          onSuccess={handleSuccess}
+          onSuccess={() => handleSuccess(!!selectedSite)}
           onCancel={handleModalClose}
         />
       </Modal>

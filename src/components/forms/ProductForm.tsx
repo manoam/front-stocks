@@ -47,6 +47,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       onSuccess();
     },
     onError: (error: any) => {
@@ -67,6 +68,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       onSuccess();
     },
     onError: (error: any) => {

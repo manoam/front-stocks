@@ -5,11 +5,13 @@ import Button from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import SupplierForm from '../components/forms/SupplierForm';
+import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
 import type { Supplier, PaginatedResponse } from '../types';
 
 export default function Suppliers() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,7 +37,12 @@ export default function Suppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setDeleteConfirm(null);
+      toast.success('Fournisseur supprimé', 'Le fournisseur a été supprimé avec succès');
+    },
+    onError: () => {
+      toast.error('Erreur', 'Impossible de supprimer le fournisseur');
     },
   });
 
@@ -54,8 +61,12 @@ export default function Suppliers() {
     setSelectedSupplier(undefined);
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = (isEdit: boolean) => {
     handleModalClose();
+    toast.success(
+      isEdit ? 'Fournisseur modifié' : 'Fournisseur créé',
+      isEdit ? 'Le fournisseur a été mis à jour avec succès' : 'Le fournisseur a été créé avec succès'
+    );
   };
 
   return (
@@ -210,7 +221,7 @@ export default function Suppliers() {
       >
         <SupplierForm
           supplier={selectedSupplier}
-          onSuccess={handleSuccess}
+          onSuccess={() => handleSuccess(!!selectedSupplier)}
           onCancel={handleModalClose}
         />
       </Modal>

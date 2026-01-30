@@ -146,9 +146,58 @@ export interface DashboardStats {
   totalSuppliers: number;
   totalSites: number;
   pendingOrders: number;
+  completedOrdersThisMonth: number;
   totalItems: number;
+  totalStockNew: number;
+  totalStockUsed: number;
   totalStockValue: number;
   highRiskProducts: number;
+  totalPossibleUnits: number;
+}
+
+export interface LowStockAlert {
+  id: string;
+  reference: string;
+  description?: string;
+  group?: string;
+  qtyPerUnit: number;
+  supplyRisk?: SupplyRisk;
+  totalNew: number;
+  totalUsed: number;
+  total: number;
+  possibleUnits: number;
+  primarySupplier?: string;
+  leadTime?: string;
+}
+
+export interface MovementsByDay {
+  date: string;
+  IN: number;
+  OUT: number;
+  TRANSFER: number;
+}
+
+export interface StockBySite {
+  name: string;
+  totalNew: number;
+  totalUsed: number;
+  productCount: number;
+}
+
+export interface TopProductStock {
+  reference: string;
+  group: string;
+  totalNew: number;
+  totalUsed: number;
+  total: number;
+}
+
+export interface OrdersByMonth {
+  month: string;
+  pending: number;
+  completed: number;
+  cancelled: number;
+  totalQty: number;
 }
 
 // Form types

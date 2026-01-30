@@ -1,13 +1,27 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Edit2, Package, Truck, MapPin, Calendar, Link } from 'lucide-react';
+import {
+  ArrowLeft,
+  Edit2,
+  Package,
+  Truck,
+  MapPin,
+  Calendar,
+  Link,
+  Plus,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  ArrowLeftRight,
+  ExternalLink,
+} from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
+import MovementForm from '../components/forms/MovementForm';
 import api from '../services/api';
 import type { Product, ApiResponse } from '../types';
 
@@ -17,6 +31,7 @@ export default function ProductDetail() {
   const queryClient = useQueryClient();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -52,6 +67,19 @@ export default function ProductDetail() {
       }),
       { total: 0, neuf: 0, occasion: 0 }
     );
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'IN':
+        return <ArrowDownCircle className="h-4 w-4 text-green-500" />;
+      case 'OUT':
+        return <ArrowUpCircle className="h-4 w-4 text-red-500" />;
+      case 'TRANSFER':
+        return <ArrowLeftRight className="h-4 w-4 text-blue-500" />;
+      default:
+        return null;
+    }
   };
 
   if (isLoading) {
@@ -92,6 +120,10 @@ export default function ProductDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setIsMovementModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Mouvement
+          </Button>
           <Button variant="secondary" onClick={() => setIsSupplierModalOpen(true)}>
             <Link className="mr-2 h-4 w-4" />
             Fournisseurs
@@ -265,15 +297,29 @@ export default function ProductDetail() {
       </Card>
 
       {/* Derniers mouvements */}
-      {data.movements && data.movements.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Derniers mouvements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Historique des mouvements
+          </CardTitle>
+          <RouterLink to={`/movements?productId=${id}`}>
+            <Button variant="ghost" size="sm">
+              Voir tout
+              <ExternalLink className="ml-1 h-4 w-4" />
+            </Button>
+          </RouterLink>
+        </CardHeader>
+        <CardContent>
+          {!data.movements?.length ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Aucun mouvement enregistré</p>
+              <Button variant="secondary" onClick={() => setIsMovementModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Créer un mouvement
+              </Button>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -282,37 +328,85 @@ export default function ProductDetail() {
                     <th className="pb-2">Type</th>
                     <th className="pb-2">Source</th>
                     <th className="pb-2">Destination</th>
+                    <th className="pb-2">État</th>
                     <th className="pb-2 text-right">Quantité</th>
                     <th className="pb-2">Opérateur</th>
+                    <th className="pb-2">Commentaire</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {data.movements.map((mvt) => (
-                    <tr key={mvt.id}>
+                    <tr key={mvt.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {new Date(mvt.movementDate).toLocaleDateString('fr-FR')}
+                        <div className="flex flex-col">
+                          <span>{new Date(mvt.movementDate).toLocaleDateString('fr-FR')}</span>
+                          <span className="text-xs">
+                            {new Date(mvt.movementDate).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-2">
-                        <Badge
-                          variant={
-                            mvt.type === 'IN' ? 'success' : mvt.type === 'OUT' ? 'danger' : 'default'
-                          }
-                        >
-                          {mvt.type === 'IN' ? 'Entrée' : mvt.type === 'OUT' ? 'Sortie' : 'Transfert'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {getTypeIcon(mvt.type)}
+                          <Badge
+                            variant={
+                              mvt.type === 'IN' ? 'success' : mvt.type === 'OUT' ? 'danger' : 'info'
+                            }
+                          >
+                            {mvt.type === 'IN' ? 'Entrée' : mvt.type === 'OUT' ? 'Sortie' : 'Transfert'}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">{mvt.sourceSite?.name || '-'}</td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">{mvt.targetSite?.name || '-'}</td>
-                      <td className="py-2 text-right font-medium text-gray-900 dark:text-gray-100">{mvt.quantity}</td>
+                      <td className="py-2">
+                        <Badge variant={mvt.condition === 'NEW' ? 'success' : 'warning'}>
+                          {mvt.condition === 'NEW' ? 'Neuf' : 'Occasion'}
+                        </Badge>
+                      </td>
+                      <td className="py-2 text-right">
+                        <span className={`font-bold ${
+                          mvt.type === 'IN'
+                            ? 'text-green-600 dark:text-green-400'
+                            : mvt.type === 'OUT'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-blue-600 dark:text-blue-400'
+                        }`}>
+                          {mvt.type === 'IN' ? '+' : mvt.type === 'OUT' ? '-' : ''}
+                          {mvt.quantity}
+                        </span>
+                      </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">{mvt.operator || '-'}</td>
+                      <td className="py-2 text-gray-600 dark:text-gray-400">
+                        {mvt.comment ? (
+                          <span className="truncate max-w-[100px] block" title={mvt.comment}>
+                            {mvt.comment}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {data.movements.length >= 10 && (
+                <div className="mt-4 text-center">
+                  <RouterLink to={`/movements?productId=${id}`}>
+                    <Button variant="ghost" size="sm">
+                      Voir tous les mouvements
+                      <ExternalLink className="ml-1 h-4 w-4" />
+                    </Button>
+                  </RouterLink>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Edit Modal */}
       <Modal
@@ -341,6 +435,24 @@ export default function ProductDetail() {
         <ProductSupplierForm
           product={data}
           onClose={() => setIsSupplierModalOpen(false)}
+        />
+      </Modal>
+
+      {/* Movement Modal */}
+      <Modal
+        isOpen={isMovementModalOpen}
+        onClose={() => setIsMovementModalOpen(false)}
+        title={`Nouveau mouvement - ${data.reference}`}
+        size="lg"
+      >
+        <MovementForm
+          preselectedProductId={id}
+          preselectedProduct={data}
+          onSuccess={() => {
+            setIsMovementModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['product', id] });
+          }}
+          onCancel={() => setIsMovementModalOpen(false)}
         />
       </Modal>
     </div>

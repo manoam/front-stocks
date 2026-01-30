@@ -8,6 +8,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
+import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
 import type { Product, PaginatedResponse } from '../types';
 
@@ -15,6 +16,7 @@ export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   // Lire search et page depuis l'URL
   const search = searchParams.get('search') || '';
@@ -60,7 +62,13 @@ export default function Products() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-alerts'] });
       setDeleteConfirm(null);
+      toast.success('Produit supprimé', 'Le produit a été supprimé avec succès');
+    },
+    onError: () => {
+      toast.error('Erreur', 'Impossible de supprimer le produit');
     },
   });
 
@@ -99,8 +107,12 @@ export default function Products() {
     setSelectedProduct(undefined);
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = (isEdit: boolean) => {
     handleModalClose();
+    toast.success(
+      isEdit ? 'Produit modifié' : 'Produit créé',
+      isEdit ? 'Le produit a été mis à jour avec succès' : 'Le produit a été créé avec succès'
+    );
   };
 
   return (
@@ -295,7 +307,7 @@ export default function Products() {
       >
         <ProductForm
           product={selectedProduct}
-          onSuccess={handleSuccess}
+          onSuccess={() => handleSuccess(!!selectedProduct)}
           onCancel={handleModalClose}
         />
       </Modal>

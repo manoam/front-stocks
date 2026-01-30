@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -26,7 +27,8 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
@@ -41,7 +43,8 @@ function App() {
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
