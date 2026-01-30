@@ -13,6 +13,26 @@ export interface ProductGroup {
   createdAt: string;
 }
 
+export interface Assembly {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  _count?: {
+    productAssemblies: number;
+  };
+}
+
+export interface ProductAssembly {
+  id: string;
+  productId: string;
+  assemblyId: string;
+  product?: Product;
+  assembly?: Assembly;
+  quantityUsed: number;
+  createdAt: string;
+}
+
 export interface Supplier {
   id: string;
   name: string;
@@ -79,6 +99,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   productSuppliers?: ProductSupplier[];
+  productAssemblies?: ProductAssembly[];
   stocks?: Stock[];
   movements?: StockMovement[];
 }

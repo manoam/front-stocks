@@ -13,6 +13,7 @@ import Sites from './pages/Sites';
 import ImportExport from './pages/ImportExport';
 import Settings from './pages/Settings';
 import ProductDetail from './pages/ProductDetail';
+import SupplierDetail from './pages/SupplierDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ function App() {
               <Route path="movements" element={<Movements />} />
               <Route path="orders" element={<Orders />} />
               <Route path="suppliers" element={<Suppliers />} />
+              <Route path="suppliers/:id" element={<SupplierDetail />} />
               <Route path="sites" element={<Sites />} />
               <Route path="import-export" element={<ImportExport />} />
               <Route path="settings" element={<Settings />} />

@@ -201,12 +201,25 @@ export default function Products() {
                   data?.data.map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="whitespace-nowrap px-6 py-4">
-                        <button
-                          onClick={() => navigate(`/products/${product.id}`)}
-                          className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300"
-                        >
-                          {product.reference}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {product.imageUrl ? (
+                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+                              <img
+                                src={product.imageUrl}
+                                alt={product.reference}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800" />
+                          )}
+                          <button
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300"
+                          >
+                            {product.reference}
+                          </button>
+                        </div>
                       </td>
                       <td className="max-w-xs truncate px-6 py-4">
                         <span className="text-gray-600 dark:text-gray-400">{product.description || '-'}</span>

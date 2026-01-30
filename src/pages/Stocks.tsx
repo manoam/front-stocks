@@ -7,15 +7,19 @@ import Badge from '../components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Select from '../components/ui/Select';
 import api from '../services/api';
-import type { Stock, Site, Product, ApiResponse } from '../types';
+import type { Stock, Site, Product, ApiResponse, Assembly, PaginatedResponse, ProductAssembly } from '../types';
+
+interface ProductWithAssemblies extends Product {
+  productAssemblies?: ProductAssembly[];
+}
 
 interface StockWithDetails extends Stock {
-  product: Product;
+  product: ProductWithAssemblies;
   site: Site;
 }
 
 interface MatrixRow {
-  product: Product;
+  product: ProductWithAssemblies;
   stocks: Map<string, { quantityNew: number; quantityUsed: number }>;
   totalNew: number;
   totalUsed: number;
@@ -28,6 +32,7 @@ type SortOrder = 'asc' | 'desc';
 export default function Stocks() {
   const [search, setSearch] = useState('');
   const [selectedSite, setSelectedSite] = useState('');
+  const [selectedAssembly, setSelectedAssembly] = useState('');
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [sortField, setSortField] = useState<SortField>('reference');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -46,6 +51,15 @@ export default function Stocks() {
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
+      return res.data.data;
+    },
+  });
+
+  // Fetch assemblies for filter
+  const { data: assembliesData } = useQuery({
+    queryKey: ['assemblies'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<Assembly>>('/assemblies?limit=100');
       return res.data.data;
     },
   });
@@ -108,6 +122,15 @@ export default function Stocks() {
       });
     }
 
+    // Filter by assembly (show only products in selected assembly)
+    if (selectedAssembly) {
+      result = result.filter((row) => {
+        return row.product.productAssemblies?.some(
+          (pa) => pa.assemblyId === selectedAssembly
+        );
+      });
+    }
+
     // Filter zero stock products
     if (!showZeroStock) {
       result = result.filter((row) => row.total > 0);
@@ -134,7 +157,7 @@ export default function Stocks() {
     });
 
     return result;
-  }, [matrixData, search, selectedSite, showZeroStock, sortField, sortOrder]);
+  }, [matrixData, search, selectedSite, selectedAssembly, showZeroStock, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -251,6 +274,20 @@ export default function Stocks() {
               ))}
             </Select>
 
+            <Select
+              value={selectedAssembly}
+              onChange={(e) => setSelectedAssembly(e.target.value)}
+              className="w-48"
+              placeholder="Tous les assemblages"
+            >
+              <option value="">Tous les assemblages</option>
+              {assembliesData?.map((assembly) => (
+                <option key={assembly.id} value={assembly.id}>
+                  {assembly.name}
+                </option>
+              ))}
+            </Select>
+
             <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <input
                 type="checkbox"
@@ -261,13 +298,14 @@ export default function Stocks() {
               Afficher stocks à zéro
             </label>
 
-            {(search || selectedSite || showZeroStock) && (
+            {(search || selectedSite || selectedAssembly || showZeroStock) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setSearch('');
                   setSelectedSite('');
+                  setSelectedAssembly('');
                   setShowZeroStock(false);
                 }}
               >
@@ -362,11 +400,11 @@ export default function Stocks() {
               Aucun produit trouvé
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[calc(100vh-400px)]">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                    <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left dark:bg-gray-800/50">
+                <thead className="sticky top-0 z-20">
+                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                    <th className="sticky left-0 z-30 bg-gray-50 px-4 py-3 text-left dark:bg-gray-800">
                       <button
                         onClick={() => handleSort('reference')}
                         className="flex items-center gap-1 font-semibold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
@@ -378,7 +416,7 @@ export default function Stocks() {
                     {storageSites.map((site) => (
                       <th
                         key={site.id}
-                        className="px-3 py-3 text-center font-semibold text-gray-700 dark:text-gray-300"
+                        className="bg-gray-50 px-3 py-3 text-center font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                       >
                         <div className="flex flex-col items-center">
                           <span>{site.name}</span>
@@ -389,7 +427,7 @@ export default function Stocks() {
                         </div>
                       </th>
                     ))}
-                    <th className="px-3 py-3 text-center">
+                    <th className="bg-gray-50 px-3 py-3 text-center dark:bg-gray-800">
                       <button
                         onClick={() => handleSort('totalNew')}
                         className="flex items-center gap-1 font-semibold text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
@@ -398,7 +436,7 @@ export default function Stocks() {
                         {getSortIcon('totalNew')}
                       </button>
                     </th>
-                    <th className="px-3 py-3 text-center">
+                    <th className="bg-gray-50 px-3 py-3 text-center dark:bg-gray-800">
                       <button
                         onClick={() => handleSort('totalUsed')}
                         className="flex items-center gap-1 font-semibold text-orange-700 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
@@ -407,7 +445,7 @@ export default function Stocks() {
                         {getSortIcon('totalUsed')}
                       </button>
                     </th>
-                    <th className="px-3 py-3 text-center">
+                    <th className="bg-gray-50 px-3 py-3 text-center dark:bg-gray-800">
                       <button
                         onClick={() => handleSort('total')}
                         className="flex items-center gap-1 font-semibold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
@@ -416,7 +454,7 @@ export default function Stocks() {
                         {getSortIcon('total')}
                       </button>
                     </th>
-                    <th className="px-3 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="bg-gray-50 px-3 py-3 text-center font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                       Actions
                     </th>
                   </tr>

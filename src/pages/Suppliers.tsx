@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
@@ -92,98 +93,155 @@ export default function Suppliers() {
         </Button>
       </div>
 
-      {/* Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
-          <span className="ml-2 text-gray-500 dark:text-gray-400">Chargement...</span>
-        </div>
-      ) : data?.data.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-gray-500 dark:text-gray-400">
-            Aucun fournisseur trouvé
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data?.data.map((supplier) => (
-            <Card key={supplier.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{supplier.name}</h3>
-                    {supplier.contact && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{supplier.contact}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(supplier)}
-                      title="Modifier"
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+              <span className="ml-2 text-gray-500 dark:text-gray-400">Chargement...</span>
+            </div>
+          ) : data?.data.length === 0 ? (
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+              Aucun fournisseur trouvé
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                      Nom
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                      Contact
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                      Email
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                      Téléphone
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                      Site web
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                      Produits
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                      Commandes
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.data.map((supplier, index) => (
+                    <tr
+                      key={supplier.id}
+                      className={`border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/30 ${
+                        index % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-800/20'
+                      }`}
                     >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirm(supplier)}
-                      title="Supprimer"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-1">
-                  {supplier.email && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      <a href={`mailto:${supplier.email}`} className="hover:text-primary-600 dark:hover:text-primary-400">
-                        {supplier.email}
-                      </a>
-                    </div>
-                  )}
-                  {supplier.phone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      <a href={`tel:${supplier.phone}`} className="hover:text-primary-600 dark:hover:text-primary-400">
-                        {supplier.phone}
-                      </a>
-                    </div>
-                  )}
-                  {supplier.website && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Globe className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      <a
-                        href={supplier.website.startsWith('http') ? supplier.website : `https://${supplier.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate hover:text-primary-600 dark:hover:text-primary-400"
-                      >
-                        {supplier.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    </div>
-                  )}
-                  {supplier.address && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <MapPin className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0 dark:text-gray-500" />
-                      <span className="line-clamp-2">{supplier.address}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-3 flex gap-4 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                  <span>{supplier._count?.productSuppliers || 0} produits</span>
-                  <span>{supplier._count?.orders || 0} commandes</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                      <td className="px-4 py-3">
+                        <Link
+                          to={`/suppliers/${supplier.id}`}
+                          className="font-medium text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400 dark:hover:text-primary-300"
+                        >
+                          {supplier.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {supplier.contact || '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {supplier.email ? (
+                          <a
+                            href={`mailto:${supplier.email}`}
+                            className="flex items-center gap-1 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            <span className="truncate max-w-[150px]">{supplier.email}</span>
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {supplier.phone ? (
+                          <a
+                            href={`tel:${supplier.phone}`}
+                            className="flex items-center gap-1 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {supplier.phone}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {supplier.website ? (
+                          <a
+                            href={supplier.website.startsWith('http') ? supplier.website : `https://${supplier.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                          >
+                            <Globe className="h-3.5 w-3.5" />
+                            <span className="truncate max-w-[120px]">
+                              {supplier.website.replace(/^https?:\/\//, '')}
+                            </span>
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {supplier._count?.productSuppliers || 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {supplier._count?.orders || 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link to={`/suppliers/${supplier.id}`}>
+                            <Button variant="ghost" size="sm" title="Voir détails">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(supplier)}
+                            title="Modifier"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteConfirm(supplier)}
+                            title="Supprimer"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Pagination */}
       {data && data.pagination.totalPages > 1 && (
@@ -198,6 +256,7 @@ export default function Suppliers() {
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
             >
+              <ChevronLeft className="h-4 w-4" />
               Précédent
             </Button>
             <Button
@@ -207,6 +266,7 @@ export default function Suppliers() {
               onClick={() => setPage(page + 1)}
             >
               Suivant
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

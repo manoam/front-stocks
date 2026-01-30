@@ -14,6 +14,7 @@ import {
   ArrowUpCircle,
   ArrowLeftRight,
   ExternalLink,
+  Boxes,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -21,6 +22,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
+import ProductAssemblyForm from '../components/forms/ProductAssemblyForm';
 import MovementForm from '../components/forms/MovementForm';
 import api from '../services/api';
 import type { Product, ApiResponse } from '../types';
@@ -31,6 +33,7 @@ export default function ProductDetail() {
   const queryClient = useQueryClient();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isAssemblyModalOpen, setIsAssemblyModalOpen] = useState(false);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -112,6 +115,15 @@ export default function ProductDetail() {
           <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
+          {data.imageUrl && (
+            <div className="h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+              <img
+                src={data.imageUrl}
+                alt={data.reference}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.reference}</h1>
             {data.description && (
@@ -127,6 +139,10 @@ export default function ProductDetail() {
           <Button variant="secondary" onClick={() => setIsSupplierModalOpen(true)}>
             <Link className="mr-2 h-4 w-4" />
             Fournisseurs
+          </Button>
+          <Button variant="secondary" onClick={() => setIsAssemblyModalOpen(true)}>
+            <Boxes className="mr-2 h-4 w-4" />
+            Assemblages
           </Button>
           <Button onClick={() => setIsEditModalOpen(true)}>
             <Edit2 className="mr-2 h-4 w-4" />
@@ -453,6 +469,19 @@ export default function ProductDetail() {
             queryClient.invalidateQueries({ queryKey: ['product', id] });
           }}
           onCancel={() => setIsMovementModalOpen(false)}
+        />
+      </Modal>
+
+      {/* Assembly Modal */}
+      <Modal
+        isOpen={isAssemblyModalOpen}
+        onClose={() => setIsAssemblyModalOpen(false)}
+        title={`Assemblages - ${data.reference}`}
+        size="lg"
+      >
+        <ProductAssemblyForm
+          product={data}
+          onClose={() => setIsAssemblyModalOpen(false)}
         />
       </Modal>
     </div>

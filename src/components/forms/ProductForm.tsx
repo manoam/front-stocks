@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ImagePlus, X } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -23,6 +24,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     supplyRisk: undefined,
     location: '',
     comment: '',
+    imageUrl: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -36,6 +38,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
         supplyRisk: product.supplyRisk,
         location: product.location || '',
         comment: product.comment || '',
+        imageUrl: product.imageUrl || '',
       });
     }
   }, [product]);
@@ -202,6 +205,52 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
             placeholder="Ex: A1-B2"
           />
         </div>
+      </div>
+
+      {/* Image URL */}
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Image du produit (URL)
+        </label>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              value={formData.imageUrl || ''}
+              onChange={(e) => handleChange('imageUrl', e.target.value)}
+              placeholder="https://exemple.com/image.jpg"
+            />
+          </div>
+          {formData.imageUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleChange('imageUrl', '')}
+              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {formData.imageUrl && (
+          <div className="mt-2 flex items-center gap-3">
+            <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+              <img
+                src={formData.imageUrl}
+                alt="Aperçu"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '';
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                <ImagePlus className="h-6 w-6" />
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Aperçu de l'image</span>
+          </div>
+        )}
       </div>
 
       <div>
