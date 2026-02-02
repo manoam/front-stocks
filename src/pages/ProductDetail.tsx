@@ -25,12 +25,10 @@ import MovementForm from '../components/forms/MovementForm';
 import api from '../services/api';
 import type { Product, ApiResponse } from '../types';
 
-// Helper to get full image URL
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
-const getFullImageUrl = (url: string) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE_URL}${url}`;
+// Helper to get image URL from API
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const getImageUrl = (productId: string) => {
+  return `${API_URL}/upload/image/${productId}`;
 };
 
 export default function ProductDetail() {
@@ -123,7 +121,7 @@ export default function ProductDetail() {
           {data.imageUrl && (
             <div className="h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
               <img
-                src={getFullImageUrl(data.imageUrl!)}
+                src={getImageUrl(data.id)}
                 alt={data.reference}
                 className="h-full w-full object-cover"
               />

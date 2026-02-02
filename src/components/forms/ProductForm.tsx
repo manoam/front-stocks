@@ -7,8 +7,8 @@ import Select from '../ui/Select';
 import api from '../../services/api';
 import type { Product, CreateProductInput, SupplyRisk, ApiResponse, Assembly, AssemblyType, PaginatedResponse } from '../../types';
 
-// Remove /api suffix for static files URL
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
+// API URL for image endpoint
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface ProductFormProps {
   product?: Product;
@@ -16,11 +16,16 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
+interface FormDataWithImage extends CreateProductInput {
+  imageData?: string | null;
+  imageMimeType?: string | null;
+}
+
 export default function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) {
   const queryClient = useQueryClient();
   const isEditing = !!product;
 
-  const [formData, setFormData] = useState<CreateProductInput>({
+  const [formData, setFormData] = useState<FormDataWithImage>({
     reference: '',
     description: '',
     qtyPerUnit: 1,
@@ -30,7 +35,13 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     assemblyTypeId: '',
     comment: '',
     imageUrl: '',
+    imageData: null,
+    imageMimeType: null,
   });
+
+  // Track if we have a new image to upload
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [hasExistingImage, setHasExistingImage] = useState(false);
 
   // Fetch assembly types for filter
   const { data: assemblyTypesData } = useQuery({
@@ -75,12 +86,19 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
         assemblyTypeId: product.assemblyTypeId || '',
         comment: product.comment || '',
         imageUrl: product.imageUrl || '',
+        imageData: null,
+        imageMimeType: null,
       });
+      // Check if product has an existing image
+      if (product.imageUrl) {
+        setHasExistingImage(true);
+        setPreviewUrl(`${API_URL}/upload/image/${product.id}?t=${Date.now()}`);
+      }
     }
   }, [product]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: CreateProductInput) => {
+    mutationFn: async (data: FormDataWithImage) => {
       const res = await api.post<ApiResponse<Product>>('/products', data);
       return res.data;
     },
@@ -101,12 +119,13 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: CreateProductInput) => {
+    mutationFn: async (data: FormDataWithImage) => {
       const res = await api.put<ApiResponse<Product>>(`/products/${product!.id}`, data);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', product!.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       onSuccess();
     },
@@ -121,7 +140,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     },
   });
 
-  const handleChange = (field: keyof CreateProductInput, value: string | number | undefined) => {
+  const handleChange = (field: keyof FormDataWithImage, value: string | number | undefined | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
@@ -153,13 +172,20 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     e.preventDefault();
     if (!validate()) return;
 
-    const data = {
+    const data: FormDataWithImage = {
       ...formData,
       qtyPerUnit: formData.qtyPerUnit || 1,
       supplyRisk: formData.supplyRisk || undefined,
       assemblyId: formData.assemblyId || undefined,
       assemblyTypeId: formData.assemblyTypeId || undefined,
     };
+
+    // If we have new image data, include it
+    if (formData.imageData) {
+      data.imageData = formData.imageData;
+      data.imageMimeType = formData.imageMimeType;
+      data.imageUrl = '/api/upload/image/'; // Will be updated with product ID
+    }
 
     if (isEditing) {
       updateMutation.mutate(data);
@@ -195,20 +221,30 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     });
 
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('image', file);
-
-      const res = await api.post('/upload/image', formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      if (res.data.success) {
-        handleChange('imageUrl', res.data.data.imageUrl);
-      }
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]; // Remove data:image/...;base64, prefix
+        setFormData(prev => ({
+          ...prev,
+          imageData: base64,
+          imageMimeType: file.type,
+          imageUrl: 'pending', // Mark as having an image
+        }));
+        // Create preview URL
+        setPreviewUrl(URL.createObjectURL(file));
+        setHasExistingImage(false);
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        setErrors(prev => ({ ...prev, image: 'Erreur lors de la lecture du fichier' }));
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error: any) {
-      setErrors(prev => ({ ...prev, image: error.response?.data?.error || 'Erreur lors de l\'upload' }));
-    } finally {
+      setErrors(prev => ({ ...prev, image: 'Erreur lors du traitement de l\'image' }));
       setIsUploading(false);
+    } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -216,17 +252,20 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
   };
 
   const handleRemoveImage = () => {
-    handleChange('imageUrl', '');
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: '',
+      imageData: null,
+      imageMimeType: null,
+    }));
+    setPreviewUrl('');
+    setHasExistingImage(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const getFullImageUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${API_BASE_URL}${url}`;
-  };
+  const hasImage = previewUrl || hasExistingImage;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -364,11 +403,11 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
           className="hidden"
           disabled={isUploading}
         />
-        {formData.imageUrl ? (
+        {hasImage ? (
           <div className="flex items-start gap-4">
             <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
               <img
-                src={getFullImageUrl(formData.imageUrl)}
+                src={previewUrl}
                 alt="Aperçu"
                 className="h-full w-full object-cover"
                 onError={(e) => {
@@ -418,7 +457,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
             {isUploading ? (
               <div className="flex flex-col items-center text-gray-500">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="mt-2 text-sm">Upload en cours...</span>
+                <span className="mt-2 text-sm">Traitement...</span>
               </div>
             ) : (
               <div className="flex flex-col items-center text-gray-500 dark:text-gray-400">
