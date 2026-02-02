@@ -14,10 +14,7 @@ import {
   ChevronRight,
   Database,
   Boxes,
-  Moon,
-  Sun,
 } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
 
 interface NavItem {
   name: string;
@@ -81,7 +78,6 @@ const navigation: NavItem[] = [
 
 export default function Sidebar() {
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['Catalogue', 'Inventaire']);
 
   const toggleGroup = (name: string) => {
@@ -196,21 +192,6 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-gray-200 p-3 dark:border-gray-700">
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Moon className="h-4 w-4 text-amber-500" />
-            )}
-          </div>
-          {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-        </button>
-
         {/* Settings */}
         <NavLink
           to="/settings"

@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ImagePlus, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { ImagePlus, X, Upload, Loader2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import api from '../../services/api';
-import type { Product, CreateProductInput, SupplyRisk, ApiResponse } from '../../types';
+import type { Product, CreateProductInput, SupplyRisk, ApiResponse, Assembly, AssemblyType, PaginatedResponse } from '../../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface ProductFormProps {
   product?: Product;
@@ -23,11 +25,42 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
     qtyPerUnit: 1,
     supplyRisk: undefined,
     location: '',
+    assemblyId: '',
+    assemblyTypeId: '',
     comment: '',
     imageUrl: '',
   });
 
+  // Fetch assembly types for filter
+  const { data: assemblyTypesData } = useQuery({
+    queryKey: ['assembly-types'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<AssemblyType>>('/assembly-types?limit=100');
+      return res.data;
+    },
+  });
+
+  // Fetch assemblies for select
+  const { data: assembliesData } = useQuery({
+    queryKey: ['assemblies'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<Assembly>>('/assemblies?limit=100');
+      return res.data;
+    },
+  });
+
+  // Filter assemblies by selected type
+  const filteredAssemblies = formData.assemblyTypeId
+    ? assembliesData?.data.filter((assembly) =>
+        assembly.assemblyTypes?.some((at: any) =>
+          at.assemblyTypeId === formData.assemblyTypeId || at.id === formData.assemblyTypeId
+        )
+      )
+    : assembliesData?.data;
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (product) {
@@ -37,6 +70,8 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
         qtyPerUnit: product.qtyPerUnit,
         supplyRisk: product.supplyRisk,
         location: product.location || '',
+        assemblyId: product.assemblyId || '',
+        assemblyTypeId: product.assemblyTypeId || '',
         comment: product.comment || '',
         imageUrl: product.imageUrl || '',
       });
@@ -121,6 +156,8 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
       ...formData,
       qtyPerUnit: formData.qtyPerUnit || 1,
       supplyRisk: formData.supplyRisk || undefined,
+      assemblyId: formData.assemblyId || undefined,
+      assemblyTypeId: formData.assemblyTypeId || undefined,
     };
 
     if (isEditing) {
@@ -131,6 +168,64 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, image: 'Type de fichier non supporté. Utilisez JPEG, PNG, GIF ou WebP' }));
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image: 'Le fichier ne doit pas dépasser 5 Mo' }));
+      return;
+    }
+
+    setIsUploading(true);
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.image;
+      return newErrors;
+    });
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+
+      const res = await api.post('/upload/image', formDataUpload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data.success) {
+        handleChange('imageUrl', res.data.data.imageUrl);
+      }
+    } catch (error: any) {
+      setErrors(prev => ({ ...prev, image: error.response?.data?.error || 'Erreur lors de l\'upload' }));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    handleChange('imageUrl', '');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const getFullImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_BASE_URL}${url}`;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -182,6 +277,54 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Type d'assemblage
+          </label>
+          <Select
+            value={formData.assemblyTypeId || ''}
+            onChange={(e) => {
+              handleChange('assemblyTypeId', e.target.value || undefined);
+              // Reset assembly if changing type filter
+              if (e.target.value && formData.assemblyId) {
+                const assembly = assembliesData?.data.find(a => a.id === formData.assemblyId);
+                const hasType = assembly?.assemblyTypes?.some((at: any) =>
+                  at.assemblyTypeId === e.target.value || at.id === e.target.value
+                );
+                if (!hasType) {
+                  handleChange('assemblyId', undefined);
+                }
+              }
+            }}
+          >
+            <option value="">Aucun type</option>
+            {assemblyTypesData?.data.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Assemblage
+          </label>
+          <Select
+            value={formData.assemblyId || ''}
+            onChange={(e) => handleChange('assemblyId', e.target.value || undefined)}
+          >
+            <option value="">Aucun assemblage</option>
+            {filteredAssemblies?.map((assembly) => (
+              <option key={assembly.id} value={assembly.id}>
+                {assembly.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Risque approvisionnement
           </label>
           <Select
@@ -207,49 +350,86 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
         </div>
       </div>
 
-      {/* Image URL */}
+      {/* Image Upload */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Image du produit (URL)
+          Image du produit
         </label>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input
-              value={formData.imageUrl || ''}
-              onChange={(e) => handleChange('imageUrl', e.target.value)}
-              placeholder="https://exemple.com/image.jpg"
-            />
-          </div>
-          {formData.imageUrl && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleChange('imageUrl', '')}
-              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        {formData.imageUrl && (
-          <div className="mt-2 flex items-center gap-3">
-            <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          onChange={handleFileChange}
+          className="hidden"
+          disabled={isUploading}
+        />
+        {formData.imageUrl ? (
+          <div className="flex items-start gap-4">
+            <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
               <img
-                src={formData.imageUrl}
+                src={getFullImageUrl(formData.imageUrl)}
                 alt="Aperçu"
                 className="h-full w-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '';
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                <ImagePlus className="h-6 w-6" />
-              </div>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Aperçu de l'image</span>
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Upload...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Changer
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveImage}
+                className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Supprimer
+              </Button>
+            </div>
           </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="flex h-24 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-primary-500 dark:hover:bg-gray-700"
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="mt-2 text-sm">Upload en cours...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-gray-500 dark:text-gray-400">
+                <ImagePlus className="h-8 w-8" />
+                <span className="mt-2 text-sm">Cliquez pour ajouter une image</span>
+                <span className="text-xs text-gray-400">JPEG, PNG, GIF, WebP (max 5 Mo)</span>
+              </div>
+            )}
+          </button>
+        )}
+        {errors.image && (
+          <p className="mt-1 text-sm text-red-500 dark:text-red-400">{errors.image}</p>
         )}
       </div>
 

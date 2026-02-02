@@ -106,32 +106,32 @@ export default function Suppliers() {
               Aucun fournisseur trouvé
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[calc(100vh-280px)]">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Nom
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Contact
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Email
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Téléphone
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Site web
                     </th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Produits
                     </th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Commandes
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Actions
                     </th>
                   </tr>

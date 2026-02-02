@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Filter, Edit2, Trash2, Eye, Link } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Link, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
+import Select from '../components/ui/Select';
 import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
 import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
-import type { Product, PaginatedResponse } from '../types';
+import type { Product, PaginatedResponse, Assembly, AssemblyType } from '../types';
 
 export default function Products() {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ export default function Products() {
   // Lire search et page depuis l'URL
   const search = searchParams.get('search') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const assemblyTypeId = searchParams.get('assemblyTypeId') || '';
+  const assemblyId = searchParams.get('assemblyId') || '';
 
   const setSearch = (value: string) => {
     const params = new URLSearchParams(searchParams);
@@ -38,18 +41,69 @@ export default function Products() {
     params.set('page', newPage.toString());
     setSearchParams(params);
   };
+
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    // Reset assemblyId if assemblyTypeId changes
+    if (key === 'assemblyTypeId') {
+      params.delete('assemblyId');
+    }
+    params.set('page', '1');
+    setSearchParams(params);
+  };
+
+  const clearFilters = () => {
+    setSearchParams(new URLSearchParams());
+  };
+
+  // Fetch assembly types
+  const { data: assemblyTypesData } = useQuery({
+    queryKey: ['assembly-types'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<AssemblyType>>('/assembly-types?limit=100');
+      return res.data;
+    },
+  });
+
+  // Fetch assemblies
+  const { data: assembliesData } = useQuery({
+    queryKey: ['assemblies'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<Assembly>>('/assemblies?limit=100');
+      return res.data;
+    },
+  });
+
+  // Filter assemblies by selected type
+  const filteredAssemblies = assemblyTypeId
+    ? assembliesData?.data.filter((assembly) =>
+        assembly.assemblyTypes?.some((at: any) =>
+          at.assemblyTypeId === assemblyTypeId || at.id === assemblyTypeId
+        )
+      )
+    : assembliesData?.data;
+
+  const hasActiveFilters = search || assemblyTypeId || assemblyId || page > 1;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<Product | null>(null);
   const [supplierModalProduct, setSupplierModalProduct] = useState<Product | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['products', page, search],
+    queryKey: ['products', page, search, assemblyTypeId, assemblyId],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
         ...(search && { search }),
+        ...(assemblyTypeId && { assemblyTypeId }),
+        ...(assemblyId && { assemblyId }),
       });
       const res = await api.get<PaginatedResponse<Product>>(`/products?${params}`);
       return res.data;
@@ -117,30 +171,51 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Header with inline filters */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher un produit..."
+              placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-80 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="h-9 w-52 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
-          <Button variant="secondary" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filtres
-          </Button>
-          {(search || page > 1) && (
+          <Select
+            value={assemblyTypeId}
+            onChange={(e) => setFilter('assemblyTypeId', e.target.value)}
+            className="h-9 w-44"
+          >
+            <option value="">Type d'assemblage</option>
+            {assemblyTypesData?.data.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={assemblyId}
+            onChange={(e) => setFilter('assemblyId', e.target.value)}
+            className="h-9 w-44"
+          >
+            <option value="">Assemblage</option>
+            {filteredAssemblies?.map((assembly) => (
+              <option key={assembly.id} value={assembly.id}>
+                {assembly.name}
+              </option>
+            ))}
+          </Select>
+          {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSearchParams(new URLSearchParams())}
+              onClick={clearFilters}
               className="text-gray-500"
             >
+              <X className="mr-1 h-4 w-4" />
               Réinitialiser
             </Button>
           )}
@@ -154,29 +229,29 @@ export default function Products() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-280px)]">
             <table className="w-full">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Référence
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Description
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                    Assemblage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Fournisseur
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Risque appro
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Stock total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Emplacement
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Actions
                   </th>
                 </tr>
@@ -200,9 +275,9 @@ export default function Products() {
                 ) : (
                   data?.data.map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="whitespace-nowrap px-6 py-4">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {product.imageUrl ? (
+                          {product.imageUrl && (
                             <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
                               <img
                                 src={product.imageUrl}
@@ -210,19 +285,33 @@ export default function Products() {
                                 className="h-full w-full object-cover"
                               />
                             </div>
-                          ) : (
-                            <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800" />
                           )}
-                          <button
-                            onClick={() => navigate(`/products/${product.id}`)}
-                            className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300"
-                          >
-                            {product.reference}
-                          </button>
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => navigate(`/products/${product.id}`)}
+                              className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                            >
+                              {product.reference}
+                            </button>
+                            {product.description && (
+                              <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                                {product.description}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
-                      <td className="max-w-xs truncate px-6 py-4">
-                        <span className="text-gray-600 dark:text-gray-400">{product.description || '-'}</span>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {product.assembly?.name || '-'}
+                          </span>
+                          {product.assemblyType && (
+                            <span className="text-xs text-primary-500 dark:text-primary-400">
+                              {product.assemblyType.name}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <span className="text-gray-600 dark:text-gray-400">

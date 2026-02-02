@@ -14,7 +14,6 @@ import {
   ArrowUpCircle,
   ArrowLeftRight,
   ExternalLink,
-  Boxes,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -22,7 +21,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
-import ProductAssemblyForm from '../components/forms/ProductAssemblyForm';
 import MovementForm from '../components/forms/MovementForm';
 import api from '../services/api';
 import type { Product, ApiResponse } from '../types';
@@ -33,7 +31,6 @@ export default function ProductDetail() {
   const queryClient = useQueryClient();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
-  const [isAssemblyModalOpen, setIsAssemblyModalOpen] = useState(false);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -140,10 +137,6 @@ export default function ProductDetail() {
             <Link className="mr-2 h-4 w-4" />
             Fournisseurs
           </Button>
-          <Button variant="secondary" onClick={() => setIsAssemblyModalOpen(true)}>
-            <Boxes className="mr-2 h-4 w-4" />
-            Assemblages
-          </Button>
           <Button onClick={() => setIsEditModalOpen(true)}>
             <Edit2 className="mr-2 h-4 w-4" />
             Modifier
@@ -175,10 +168,17 @@ export default function ProductDetail() {
                 <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Emplacement</dt>
                 <dd className="mt-1 text-gray-900 dark:text-gray-100">{data.location || '-'}</dd>
               </div>
-              {data.group && (
+              {data.assembly && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Groupe</dt>
-                  <dd className="mt-1 text-gray-900 dark:text-gray-100">{data.group.name}</dd>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Assemblage</dt>
+                  <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                    {data.assembly.name}
+                    {data.assembly.assemblyTypes && data.assembly.assemblyTypes.length > 0 && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        ({data.assembly.assemblyTypes.map((t) => t.name).join(', ')})
+                      </span>
+                    )}
+                  </dd>
                 </div>
               )}
               {data.comment && (
@@ -472,18 +472,6 @@ export default function ProductDetail() {
         />
       </Modal>
 
-      {/* Assembly Modal */}
-      <Modal
-        isOpen={isAssemblyModalOpen}
-        onClose={() => setIsAssemblyModalOpen(false)}
-        title={`Assemblages - ${data.reference}`}
-        size="lg"
-      >
-        <ProductAssemblyForm
-          product={data}
-          onClose={() => setIsAssemblyModalOpen(false)}
-        />
-      </Modal>
     </div>
   );
 }

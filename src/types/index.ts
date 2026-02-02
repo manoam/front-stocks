@@ -6,11 +6,14 @@ export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 export type SiteType = 'STORAGE' | 'EXIT';
 
 // Base interfaces
-export interface ProductGroup {
+export interface AssemblyType {
   id: string;
   name: string;
   description?: string;
   createdAt: string;
+  _count?: {
+    assemblies: number;
+  };
 }
 
 export interface Assembly {
@@ -18,19 +21,10 @@ export interface Assembly {
   name: string;
   description?: string;
   createdAt: string;
+  assemblyTypes?: AssemblyType[];
   _count?: {
-    productAssemblies: number;
+    products: number;
   };
-}
-
-export interface ProductAssembly {
-  id: string;
-  productId: string;
-  assemblyId: string;
-  product?: Product;
-  assembly?: Assembly;
-  quantityUsed: number;
-  createdAt: string;
 }
 
 export interface Supplier {
@@ -92,14 +86,15 @@ export interface Product {
   qtyPerUnit: number;
   supplyRisk?: SupplyRisk;
   location?: string;
-  groupId?: string;
-  group?: ProductGroup;
+  assemblyId?: string;
+  assembly?: Assembly;
+  assemblyTypeId?: string;
+  assemblyType?: AssemblyType;
   comment?: string;
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
   productSuppliers?: ProductSupplier[];
-  productAssemblies?: ProductAssembly[];
   stocks?: Stock[];
   movements?: StockMovement[];
 }
@@ -180,7 +175,7 @@ export interface LowStockAlert {
   id: string;
   reference: string;
   description?: string;
-  group?: string;
+  assembly?: string;
   qtyPerUnit: number;
   supplyRisk?: SupplyRisk;
   totalNew: number;
@@ -207,7 +202,7 @@ export interface StockBySite {
 
 export interface TopProductStock {
   reference: string;
-  group: string;
+  assembly: string;
   totalNew: number;
   totalUsed: number;
   total: number;
@@ -228,7 +223,8 @@ export interface CreateProductInput {
   qtyPerUnit?: number;
   supplyRisk?: SupplyRisk;
   location?: string;
-  groupId?: string;
+  assemblyId?: string;
+  assemblyTypeId?: string;
   comment?: string;
   imageUrl?: string;
 }

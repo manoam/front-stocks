@@ -7,19 +7,20 @@ import Badge from '../components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Select from '../components/ui/Select';
 import api from '../services/api';
-import type { Stock, Site, Product, ApiResponse, Assembly, PaginatedResponse, ProductAssembly } from '../types';
+import type { Stock, Site, Product, ApiResponse, AssemblyType, PaginatedResponse, Assembly } from '../types';
 
-interface ProductWithAssemblies extends Product {
-  productAssemblies?: ProductAssembly[];
+interface ProductWithAssembly extends Product {
+  assembly?: Assembly;
+  assemblyType?: AssemblyType;
 }
 
 interface StockWithDetails extends Stock {
-  product: ProductWithAssemblies;
+  product: ProductWithAssembly;
   site: Site;
 }
 
 interface MatrixRow {
-  product: ProductWithAssemblies;
+  product: ProductWithAssembly;
   stocks: Map<string, { quantityNew: number; quantityUsed: number }>;
   totalNew: number;
   totalUsed: number;
@@ -32,6 +33,7 @@ type SortOrder = 'asc' | 'desc';
 export default function Stocks() {
   const [search, setSearch] = useState('');
   const [selectedSite, setSelectedSite] = useState('');
+  const [selectedAssemblyType, setSelectedAssemblyType] = useState('');
   const [selectedAssembly, setSelectedAssembly] = useState('');
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [sortField, setSortField] = useState<SortField>('reference');
@@ -55,14 +57,34 @@ export default function Stocks() {
     },
   });
 
+  // Fetch assembly types for filter
+  const { data: assemblyTypesResponse } = useQuery({
+    queryKey: ['assembly-types'],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<AssemblyType>>('/assembly-types?limit=100');
+      return res.data;
+    },
+  });
+  const assemblyTypesData = assemblyTypesResponse?.data;
+
   // Fetch assemblies for filter
-  const { data: assembliesData } = useQuery({
+  const { data: assembliesResponse } = useQuery({
     queryKey: ['assemblies'],
     queryFn: async () => {
       const res = await api.get<PaginatedResponse<Assembly>>('/assemblies?limit=100');
-      return res.data.data;
+      return res.data;
     },
   });
+  const assembliesData = assembliesResponse?.data;
+
+  // Filter assemblies by selected type
+  const filteredAssemblies = selectedAssemblyType
+    ? assembliesData?.filter((assembly) =>
+        assembly.assemblyTypes?.some((at: any) =>
+          at.assemblyTypeId === selectedAssemblyType || at.id === selectedAssemblyType
+        )
+      )
+    : assembliesData;
 
   // Storage sites only (for matrix columns)
   const storageSites = useMemo(() =>
@@ -122,12 +144,17 @@ export default function Stocks() {
       });
     }
 
-    // Filter by assembly (show only products in selected assembly)
+    // Filter by assembly type
+    if (selectedAssemblyType) {
+      result = result.filter((row) => {
+        return row.product.assemblyTypeId === selectedAssemblyType;
+      });
+    }
+
+    // Filter by assembly
     if (selectedAssembly) {
       result = result.filter((row) => {
-        return row.product.productAssemblies?.some(
-          (pa) => pa.assemblyId === selectedAssembly
-        );
+        return row.product.assemblyId === selectedAssembly;
       });
     }
 
@@ -157,7 +184,7 @@ export default function Stocks() {
     });
 
     return result;
-  }, [matrixData, search, selectedSite, selectedAssembly, showZeroStock, sortField, sortOrder]);
+  }, [matrixData, search, selectedSite, selectedAssemblyType, selectedAssembly, showZeroStock, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -264,7 +291,6 @@ export default function Stocks() {
               value={selectedSite}
               onChange={(e) => setSelectedSite(e.target.value)}
               className="w-48"
-              placeholder="Tous les sites"
             >
               <option value="">Tous les sites</option>
               {storageSites.map((site) => (
@@ -275,13 +301,28 @@ export default function Stocks() {
             </Select>
 
             <Select
+              value={selectedAssemblyType}
+              onChange={(e) => {
+                setSelectedAssemblyType(e.target.value);
+                setSelectedAssembly(''); // Reset assembly when type changes
+              }}
+              className="w-48"
+            >
+              <option value="">Type d'assemblage</option>
+              {assemblyTypesData?.filter((at) => at && at.id && at.name).map((assemblyType) => (
+                <option key={assemblyType.id} value={assemblyType.id}>
+                  {assemblyType.name}
+                </option>
+              ))}
+            </Select>
+
+            <Select
               value={selectedAssembly}
               onChange={(e) => setSelectedAssembly(e.target.value)}
               className="w-48"
-              placeholder="Tous les assemblages"
             >
-              <option value="">Tous les assemblages</option>
-              {assembliesData?.map((assembly) => (
+              <option value="">Assemblage</option>
+              {filteredAssemblies?.filter((a) => a && a.id && a.name).map((assembly) => (
                 <option key={assembly.id} value={assembly.id}>
                   {assembly.name}
                 </option>
@@ -298,13 +339,14 @@ export default function Stocks() {
               Afficher stocks à zéro
             </label>
 
-            {(search || selectedSite || selectedAssembly || showZeroStock) && (
+            {(search || selectedSite || selectedAssemblyType || selectedAssembly || showZeroStock) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setSearch('');
                   setSelectedSite('');
+                  setSelectedAssemblyType('');
                   setSelectedAssembly('');
                   setShowZeroStock(false);
                 }}
@@ -413,6 +455,9 @@ export default function Stocks() {
                         {getSortIcon('reference')}
                       </button>
                     </th>
+                    <th className="bg-gray-50 px-3 py-3 text-left font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                      Assemblage
+                    </th>
                     {storageSites.map((site) => (
                       <th
                         key={site.id}
@@ -497,6 +542,18 @@ export default function Stocks() {
                           )}
                         </div>
                       </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {row.product.assembly?.name || '-'}
+                          </span>
+                          {row.product.assemblyType && (
+                            <span className="text-xs text-primary-500 dark:text-primary-400">
+                              {row.product.assemblyType.name}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       {storageSites.map((site) => {
                         const siteStock = row.stocks.get(site.id);
                         return (
@@ -532,6 +589,7 @@ export default function Stocks() {
                     <td className="sticky left-0 z-10 bg-gray-100 px-4 py-3 dark:bg-gray-800">
                       Total
                     </td>
+                    <td className="bg-gray-100 px-3 py-3 dark:bg-gray-800"></td>
                     {storageSites.map((site) => {
                       const siteTotal = siteTotals.get(site.id);
                       return (
