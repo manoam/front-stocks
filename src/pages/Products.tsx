@@ -13,6 +13,14 @@ import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
 import type { Product, PaginatedResponse, Assembly, AssemblyType } from '../types';
 
+// Helper to get full image URL
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
+const getFullImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url}`;
+};
+
 export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -280,7 +288,7 @@ export default function Products() {
                           {product.imageUrl && (
                             <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
                               <img
-                                src={product.imageUrl}
+                                src={getFullImageUrl(product.imageUrl!)}
                                 alt={product.reference}
                                 className="h-full w-full object-cover"
                               />

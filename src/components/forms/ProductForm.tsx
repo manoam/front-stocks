@@ -7,7 +7,8 @@ import Select from '../ui/Select';
 import api from '../../services/api';
 import type { Product, CreateProductInput, SupplyRisk, ApiResponse, Assembly, AssemblyType, PaginatedResponse } from '../../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Remove /api suffix for static files URL
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
 
 interface ProductFormProps {
   product?: Product;
