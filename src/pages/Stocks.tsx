@@ -241,15 +241,15 @@ export default function Stocks() {
       <div className="flex flex-col items-center gap-0.5">
         <span className="font-medium text-gray-900 dark:text-gray-100">{total}</span>
         {(quantityNew > 0 || quantityUsed > 0) && (
-          <div className="flex gap-1 text-xs">
+          <div className="flex flex-col gap-0.5 text-xs">
             {quantityNew > 0 && (
-              <span className="text-green-600 dark:text-green-400" title="Neuf">
-                {quantityNew}N
+              <span className="text-green-600 dark:text-green-400">
+                {quantityNew} Neuf
               </span>
             )}
             {quantityUsed > 0 && (
-              <span className="text-orange-600 dark:text-orange-400" title="Occasion">
-                {quantityUsed}O
+              <span className="text-orange-600 dark:text-orange-400">
+                {quantityUsed} Occasion
               </span>
             )}
           </div>

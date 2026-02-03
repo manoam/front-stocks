@@ -14,6 +14,7 @@ import ImportExport from './pages/ImportExport';
 import Settings from './pages/Settings';
 import ProductDetail from './pages/ProductDetail';
 import SupplierDetail from './pages/SupplierDetail';
+import Packs from './pages/Packs';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="products" element={<Products />} />
               <Route path="products/:id" element={<ProductDetail />} />
+              <Route path="packs" element={<Packs />} />
               <Route path="stocks" element={<Stocks />} />
               <Route path="movements" element={<Movements />} />
               <Route path="orders" element={<Orders />} />

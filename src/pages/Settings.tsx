@@ -136,6 +136,7 @@ export default function Settings() {
     },
   });
 
+
   // Assembly Type handlers
   const handleOpenAssemblyTypeModal = (assemblyType?: AssemblyType) => {
     setSelectedAssemblyType(assemblyType);

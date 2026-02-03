@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, Loader2 } from 'lucide-react';
 import api from '../../services/api';
@@ -22,8 +23,11 @@ export default function ProductSearch({
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(initialProduct);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch products based on search
   const { data: products, isLoading } = useQuery({
@@ -39,7 +43,12 @@ export default function ProductSearch({
   // Handle click outside to close dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Check if click is outside both the wrapper and the portaled dropdown
+      const isOutsideWrapper = wrapperRef.current && !wrapperRef.current.contains(target);
+      const isOutsideDropdown = !dropdownRef.current || !dropdownRef.current.contains(target);
+
+      if (isOutsideWrapper && isOutsideDropdown) {
         setIsOpen(false);
       }
     }
@@ -47,11 +56,22 @@ export default function ProductSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Update dropdown position when opening
+  useEffect(() => {
+    if (isOpen && inputContainerRef.current) {
+      const rect = inputContainerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen, search]);
+
   // Set initial product if provided
   useEffect(() => {
-    if (initialProduct) {
-      setSelectedProduct(initialProduct);
-    }
+    setSelectedProduct(initialProduct);
+    setSearch('');
   }, [initialProduct]);
 
   const handleSelect = (product: Product) => {
@@ -91,7 +111,7 @@ export default function ProductSearch({
         </label>
       )}
 
-      <div className="relative">
+      <div className="relative" ref={inputContainerRef}>
         {selectedProduct ? (
           // Selected product display
           <div
@@ -146,9 +166,17 @@ export default function ProductSearch({
           </>
         )}
 
-        {/* Dropdown */}
-        {isOpen && !selectedProduct && (
-          <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        {/* Dropdown - rendered via portal to escape overflow:hidden parents */}
+        {isOpen && !selectedProduct && createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[9999] rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+            }}
+          >
             {search.length < 1 ? (
               <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                 Tapez pour rechercher un produit...
@@ -189,7 +217,8 @@ export default function ProductSearch({
                 Aucun produit trouvé pour "{search}"
               </div>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

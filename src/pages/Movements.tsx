@@ -19,6 +19,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import MovementForm from '../components/forms/MovementForm';
+import PackMovementForm from '../components/forms/PackMovementForm';
 import { useToast } from '../components/ui/Toast';
 import api from '../services/api';
 import type { StockMovement, Site, ApiResponse, PaginatedResponse } from '../types';
@@ -26,6 +27,7 @@ import type { StockMovement, Site, ApiResponse, PaginatedResponse } from '../typ
 export default function Movements() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPackMovementModalOpen, setIsPackMovementModalOpen] = useState(false);
   const toast = useToast();
 
   // URL params for filters
@@ -153,10 +155,16 @@ export default function Movements() {
             Historique des entrées, sorties et transferts
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau mouvement
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau mouvement
+          </Button>
+          <Button variant="secondary" onClick={() => setIsPackMovementModalOpen(true)}>
+            <Package className="mr-2 h-4 w-4" />
+            Mouvement du pack
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -498,6 +506,22 @@ export default function Movements() {
             toast.success('Mouvement créé', 'Le mouvement de stock a été enregistré avec succès');
           }}
           onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+
+      {/* Pack Movement Modal */}
+      <Modal
+        isOpen={isPackMovementModalOpen}
+        onClose={() => setIsPackMovementModalOpen(false)}
+        title="Mouvement du pack"
+        size="lg"
+      >
+        <PackMovementForm
+          onSuccess={() => {
+            setIsPackMovementModalOpen(false);
+            toast.success('Mouvement pack créé', 'Le mouvement du pack a été enregistré avec succès');
+          }}
+          onCancel={() => setIsPackMovementModalOpen(false)}
         />
       </Modal>
     </div>

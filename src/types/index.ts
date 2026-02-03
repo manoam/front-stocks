@@ -4,6 +4,7 @@ export type MovementType = 'IN' | 'OUT' | 'TRANSFER';
 export type ProductCondition = 'NEW' | 'USED';
 export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 export type SiteType = 'STORAGE' | 'EXIT';
+export type PackType = 'IN' | 'OUT';
 
 // Base interfaces
 export interface AssemblyType {
@@ -258,4 +259,37 @@ export interface ReceiveOrderInput {
   receivedQty: number;
   condition?: ProductCondition;
   comment?: string;
+}
+
+// Pack types
+export interface PackItem {
+  id: string;
+  packId: string;
+  productId: string;
+  product: {
+    id: string;
+    reference: string;
+    description?: string;
+  };
+  quantity: number;
+}
+
+export interface Pack {
+  id: string;
+  name: string;
+  type: PackType;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  items: PackItem[];
+  _count?: {
+    items: number;
+  };
+}
+
+export interface CreatePackInput {
+  name: string;
+  type: PackType;
+  description?: string;
+  items: { productId: string; quantity: number }[];
 }

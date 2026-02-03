@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Database,
   Boxes,
+  PackageOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,6 +44,7 @@ const navigation: NavItem[] = [
     iconBgDark: 'dark:bg-violet-900/30',
     children: [
       { name: 'Produits', href: '/products', icon: Package, iconColor: 'text-violet-500' },
+      { name: 'Packs', href: '/packs', icon: PackageOpen, iconColor: 'text-indigo-500' },
       { name: 'Fournisseurs', href: '/suppliers', icon: Users, iconColor: 'text-pink-500' },
       { name: 'Sites', href: '/sites', icon: MapPin, iconColor: 'text-rose-500' },
     ],
@@ -139,7 +141,7 @@ export default function Sidebar() {
                   {/* Enfants */}
                   <div
                     className={`overflow-hidden transition-all duration-200 ${
-                      isExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                      isExpanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
                     <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 pl-3 dark:border-gray-700">
