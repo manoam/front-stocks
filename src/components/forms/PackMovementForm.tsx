@@ -41,7 +41,6 @@ export default function PackMovementForm({ onSuccess, onCancel }: PackMovementFo
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors },
     control,
   } = useForm<PackMovementFormData>({
@@ -139,7 +138,7 @@ export default function PackMovementForm({ onSuccess, onCancel }: PackMovementFo
 
       return movements.length;
     },
-    onSuccess: (count) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movements'] });
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
