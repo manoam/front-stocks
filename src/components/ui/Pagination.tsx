@@ -62,8 +62,6 @@ export default function Pagination({
     'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800';
   const buttonActiveClass =
     'bg-primary-600 text-white hover:bg-primary-700';
-  const buttonDisabledClass =
-    'text-gray-300 cursor-not-allowed dark:text-gray-600';
 
   return (
     <div className={`flex items-center justify-between ${className}`}>
