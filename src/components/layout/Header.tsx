@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu, Search, User } from 'lucide-react';
+import { Bell, LogOut, Menu, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
