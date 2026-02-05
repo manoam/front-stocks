@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit2, Trash2, MapPin, Warehouse, LogOut } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, MapPin, Warehouse, LogOut, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { Card, CardContent } from '../components/ui/Card';
@@ -89,16 +89,16 @@ export default function Sites() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher un site..."
+              placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-80 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="h-10 w-full sm:w-64 lg:w-80 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
           {search && (
@@ -106,15 +106,17 @@ export default function Sites() {
               variant="ghost"
               size="sm"
               onClick={() => setSearch('')}
-              className="text-gray-500"
+              className="text-gray-500 shrink-0"
             >
-              Réinitialiser
+              <span className="hidden sm:inline">Réinitialiser</span>
+              <X className="h-4 w-4 sm:hidden" />
             </Button>
           )}
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} className="shrink-0">
           <Plus className="mr-2 h-4 w-4" />
-          Nouveau site
+          <span className="hidden sm:inline">Nouveau site</span>
+          <span className="sm:hidden">Ajouter</span>
         </Button>
       </div>
 
@@ -131,7 +133,7 @@ export default function Sites() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredSites?.map((site) => (
             <Card key={site.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">

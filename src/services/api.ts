@@ -1,4 +1,5 @@
 import axios from 'axios';
+import keycloak from '../config/keycloak';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
@@ -9,11 +10,16 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    if (keycloak.authenticated) {
+      try {
+        // Refresh token if it expires within 30 seconds
+        await keycloak.updateToken(30);
+      } catch (error) {
+        keycloak.logout();
+        return Promise.reject(error);
+      }
+      config.headers.Authorization = `Bearer ${keycloak.token}`;
     }
     return config;
   },
@@ -27,8 +33,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      keycloak.logout();
     }
     return Promise.reject(error);
   }

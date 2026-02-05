@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Package, MapPin, Filter, ArrowUpDown, Eye } from 'lucide-react';
+import { Search, Package, MapPin, Filter, ArrowUpDown, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -38,6 +38,7 @@ export default function Stocks() {
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [sortField, setSortField] = useState<SortField>('reference');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   // Fetch stocks
   const { data: stocksData, isLoading: stocksLoading } = useQuery({
@@ -258,25 +259,155 @@ export default function Stocks() {
     );
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Gestion des Stocks
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Vue matricielle des stocks par produit et par site
-          </p>
+  const toggleRowExpand = (productId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(productId)) {
+      newExpanded.delete(productId);
+    } else {
+      newExpanded.add(productId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  // Mobile card component for stocks
+  const StockCard = ({ row }: { row: MatrixRow }) => {
+    const isExpanded = expandedRows.has(row.product.id);
+
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <Link
+                to={`/products/${row.product.id}`}
+                className="font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+              >
+                {row.product.reference}
+              </Link>
+              {row.product.description && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  {row.product.description}
+                </p>
+              )}
+              {row.product.supplyRisk && (
+                <Badge
+                  variant={
+                    row.product.supplyRisk === 'HIGH'
+                      ? 'danger'
+                      : row.product.supplyRisk === 'MEDIUM'
+                      ? 'warning'
+                      : 'success'
+                  }
+                  className="mt-1"
+                >
+                  {row.product.supplyRisk === 'HIGH'
+                    ? 'Risque fort'
+                    : row.product.supplyRisk === 'MEDIUM'
+                    ? 'Risque moyen'
+                    : 'Risque faible'}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to={`/products/${row.product.id}`}>
+                <Button variant="ghost" size="sm">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Stock summary */}
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{row.total}</p>
+            </div>
+            <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
+              <p className="text-xs text-green-600 dark:text-green-400">Neuf</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">{row.totalNew}</p>
+            </div>
+            <div className="rounded-lg bg-orange-50 p-2 dark:bg-orange-900/20">
+              <p className="text-xs text-orange-600 dark:text-orange-400">Occasion</p>
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{row.totalUsed}</p>
+            </div>
+          </div>
+
+          {/* Expand/collapse button for site details */}
+          {storageSites.length > 0 && (
+            <button
+              onClick={() => toggleRowExpand(row.product.id)}
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Masquer les détails par site
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Voir les détails par site
+                </>
+              )}
+            </button>
+          )}
         </div>
+
+        {/* Expanded site details */}
+        {isExpanded && (
+          <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+            <div className="space-y-2">
+              {storageSites.map((site) => {
+                const siteStock = row.stocks.get(site.id);
+                const siteTotal = (siteStock?.quantityNew || 0) + (siteStock?.quantityUsed || 0);
+                if (siteTotal === 0) return null;
+
+                return (
+                  <div
+                    key={site.id}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"
+                  >
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {site.name}
+                    </span>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{siteTotal}</span>
+                      {siteStock?.quantityNew ? (
+                        <span className="text-green-600 dark:text-green-400">{siteStock.quantityNew}N</span>
+                      ) : null}
+                      {siteStock?.quantityUsed ? (
+                        <span className="text-orange-600 dark:text-orange-400">{siteStock.quantityUsed}O</span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-gray-100">
+          Gestion des Stocks
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Vue matricielle des stocks par produit et par site
+        </p>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            {/* Search */}
+            <div className="relative flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -287,89 +418,96 @@ export default function Stocks() {
               />
             </div>
 
-            <Select
-              value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
-              className="w-48"
-            >
-              <option value="">Tous les sites</option>
-              {storageSites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              value={selectedAssemblyType}
-              onChange={(e) => {
-                setSelectedAssemblyType(e.target.value);
-                setSelectedAssembly(''); // Reset assembly when type changes
-              }}
-              className="w-48"
-            >
-              <option value="">Type d'assemblage</option>
-              {assemblyTypesData?.filter((at) => at && at.id && at.name).map((assemblyType) => (
-                <option key={assemblyType.id} value={assemblyType.id}>
-                  {assemblyType.name}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              value={selectedAssembly}
-              onChange={(e) => setSelectedAssembly(e.target.value)}
-              className="w-48"
-            >
-              <option value="">Assemblage</option>
-              {filteredAssemblies?.filter((a) => a && a.id && a.name).map((assembly) => (
-                <option key={assembly.id} value={assembly.id}>
-                  {assembly.name}
-                </option>
-              ))}
-            </Select>
-
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                checked={showZeroStock}
-                onChange={(e) => setShowZeroStock(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
-              />
-              Afficher stocks à zéro
-            </label>
-
-            {(search || selectedSite || selectedAssemblyType || selectedAssembly || showZeroStock) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearch('');
-                  setSelectedSite('');
-                  setSelectedAssemblyType('');
-                  setSelectedAssembly('');
-                  setShowZeroStock(false);
-                }}
+            {/* Filters - horizontal scroll on mobile */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Select
+                value={selectedSite}
+                onChange={(e) => setSelectedSite(e.target.value)}
+                className="min-w-[130px] sm:w-40"
               >
-                <Filter className="mr-1 h-4 w-4" />
-                Réinitialiser
-              </Button>
-            )}
+                <option value="">Tous sites</option>
+                {storageSites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                value={selectedAssemblyType}
+                onChange={(e) => {
+                  setSelectedAssemblyType(e.target.value);
+                  setSelectedAssembly('');
+                }}
+                className="min-w-[130px] sm:w-40"
+              >
+                <option value="">Type</option>
+                {assemblyTypesData?.filter((at) => at && at.id && at.name).map((assemblyType) => (
+                  <option key={assemblyType.id} value={assemblyType.id}>
+                    {assemblyType.name}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                value={selectedAssembly}
+                onChange={(e) => setSelectedAssembly(e.target.value)}
+                className="min-w-[130px] sm:w-40"
+              >
+                <option value="">Assemblage</option>
+                {filteredAssemblies?.filter((a) => a && a.id && a.name).map((assembly) => (
+                  <option key={assembly.id} value={assembly.id}>
+                    {assembly.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={showZeroStock}
+                  onChange={(e) => setShowZeroStock(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                />
+                <span className="hidden sm:inline">Afficher stocks à zéro</span>
+                <span className="sm:hidden">Stock 0</span>
+              </label>
+
+              {(search || selectedSite || selectedAssemblyType || selectedAssembly || showZeroStock) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedSite('');
+                    setSelectedAssemblyType('');
+                    setSelectedAssembly('');
+                    setShowZeroStock(false);
+                  }}
+                  className="whitespace-nowrap"
+                >
+                  <Filter className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Réinitialiser</span>
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                <Package className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-blue-100 p-1.5 md:p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                <Package className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Produits</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Produits</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {filteredData.length}
                 </p>
               </div>
@@ -378,14 +516,14 @@ export default function Stocks() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                <Package className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-green-100 p-1.5 md:p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                <Package className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Stock neuf</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Stock neuf</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {grandTotal.totalNew}
                 </p>
               </div>
@@ -394,14 +532,14 @@ export default function Stocks() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-orange-100 p-2 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                <Package className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-orange-100 p-1.5 md:p-2 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                <Package className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Stock occasion</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Occasion</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {grandTotal.totalUsed}
                 </p>
               </div>
@@ -410,14 +548,14 @@ export default function Stocks() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-purple-100 p-2 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                <MapPin className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-purple-100 p-1.5 md:p-2 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                <MapPin className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Sites actifs</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Sites</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {storageSites.length}
                 </p>
               </div>
@@ -426,8 +564,28 @@ export default function Stocks() {
         </Card>
       </div>
 
-      {/* Matrix Table */}
-      <Card>
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden">
+        {stocksLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <span className="ml-2 text-gray-500">Chargement...</span>
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            Aucun produit trouvé
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredData.map((row) => (
+              <StockCard key={row.product.id} row={row} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Matrix Table */}
+      <Card className="hidden lg:block">
         <CardHeader>
           <CardTitle>Matrice des stocks</CardTitle>
         </CardHeader>

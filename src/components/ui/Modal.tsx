@@ -45,20 +45,20 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
       />
 
       {/* Modal */}
-      <div className={`relative w-full ${sizeClasses[size]} mx-4 max-h-[90vh] overflow-hidden rounded-xl bg-white shadow-xl dark:bg-gray-900`}>
+      <div className={`relative w-full ${sizeClasses[size]} mx-2 sm:mx-4 max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-xl bg-white shadow-xl dark:bg-gray-900`}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 pr-2">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="shrink-0 rounded-lg p-1.5 sm:p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="max-h-[calc(90vh-8rem)] overflow-y-auto px-6 py-4">
+        <div className="max-h-[calc(95vh-6rem)] sm:max-h-[calc(90vh-8rem)] overflow-y-auto px-4 sm:px-6 py-3 sm:py-4">
           {children}
         </div>
       </div>

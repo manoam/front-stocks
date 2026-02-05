@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit2, Trash2, Eye, Link, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Link, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Select from '../components/ui/Select';
@@ -177,65 +177,204 @@ export default function Products() {
     );
   };
 
+  // Mobile card component
+  const ProductCard = ({ product }: { product: Product }) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+      <div className="flex items-start gap-3">
+        {product.imageUrl && (
+          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+            <img
+              src={getFullImageUrl(product.imageUrl!)}
+              alt={product.reference}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <button
+            onClick={() => navigate(`/products/${product.id}`)}
+            className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300 text-left truncate block w-full"
+          >
+            {product.reference}
+          </button>
+          {product.description && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+              {product.description}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {getRiskBadge(product.supplyRisk)}
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Stock: {getTotalStock(product)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Assemblage:</span>
+          <p className="text-gray-900 dark:text-gray-100 truncate">
+            {product.assembly?.name || '-'}
+          </p>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Fournisseur:</span>
+          <p className="text-gray-900 dark:text-gray-100 truncate">
+            {product.productSuppliers?.[0]?.supplier.name || '-'}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-1 border-t border-gray-100 pt-3 dark:border-gray-800">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(`/products/${product.id}`)}
+          title="Voir"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSupplierModalProduct(product)}
+          title="Gérer fournisseurs"
+        >
+          <Link className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleEdit(product)}
+          title="Modifier"
+        >
+          <Edit2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setDeleteConfirm(product)}
+          title="Supprimer"
+          className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header with inline filters */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap flex-1">
+          {/* Search */}
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-52 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="h-9 w-full sm:w-52 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
-          <Select
-            value={assemblyTypeId}
-            onChange={(e) => setFilter('assemblyTypeId', e.target.value)}
-            className="h-9 w-44"
-          >
-            <option value="">Type d'assemblage</option>
-            {assemblyTypesData?.data.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={assemblyId}
-            onChange={(e) => setFilter('assemblyId', e.target.value)}
-            className="h-9 w-44"
-          >
-            <option value="">Assemblage</option>
-            {filteredAssemblies?.map((assembly) => (
-              <option key={assembly.id} value={assembly.id}>
-                {assembly.name}
-              </option>
-            ))}
-          </Select>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-gray-500"
+
+          {/* Filters - horizontal scroll on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <Select
+              value={assemblyTypeId}
+              onChange={(e) => setFilter('assemblyTypeId', e.target.value)}
+              className="h-9 min-w-[140px] sm:w-44"
             >
-              <X className="mr-1 h-4 w-4" />
-              Réinitialiser
-            </Button>
-          )}
+              <option value="">Type</option>
+              {assemblyTypesData?.data.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={assemblyId}
+              onChange={(e) => setFilter('assemblyId', e.target.value)}
+              className="h-9 min-w-[140px] sm:w-44"
+            >
+              <option value="">Assemblage</option>
+              {filteredAssemblies?.map((assembly) => (
+                <option key={assembly.id} value={assembly.id}>
+                  {assembly.name}
+                </option>
+              ))}
+            </Select>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-gray-500 whitespace-nowrap"
+              >
+                <X className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Réinitialiser</span>
+              </Button>
+            )}
+          </div>
         </div>
-        <Button onClick={handleCreate}>
+
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
-          Nouveau produit
+          <span className="sm:hidden">Ajouter</span>
+          <span className="hidden sm:inline">Nouveau produit</span>
         </Button>
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <span className="ml-2 text-gray-500">Chargement...</span>
+          </div>
+        ) : data?.data.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            Aucun produit trouvé
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data?.data.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        {data && data.pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {page} / {data.pagination.totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page === data.pagination.totalPages}
+              onClick={() => setPage(page + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <Card className="hidden lg:block">
         <CardContent className="p-0">
           <div className="overflow-auto max-h-[calc(100vh-280px)]">
             <table className="w-full">
@@ -379,7 +518,7 @@ export default function Products() {
             </table>
           </div>
 
-          {/* Pagination */}
+          {/* Desktop Pagination */}
           {data && data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3 dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">

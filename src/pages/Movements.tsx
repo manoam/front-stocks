@@ -135,6 +135,13 @@ export default function Movements() {
     });
   };
 
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const hasFilters = typeFilter || siteFilter || startDate || endDate || search || conditionFilter;
 
   const resetFilters = () => {
@@ -143,26 +150,108 @@ export default function Movements() {
 
   const pagination = movementsData?.pagination;
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  // Mobile card component
+  const MovementCard = ({ movement }: { movement: StockMovement }) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          {getTypeIcon(movement.type)}
+          {getTypeBadge(movement.type)}
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {formatDate(movement.movementDate)}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {formatTime(movement.movementDate)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <Link
+          to={`/products/${movement.productId}`}
+          className="font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+        >
+          {movement.product.reference}
+        </Link>
+        {movement.product.description && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+            {movement.product.description}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={`text-lg font-bold ${
+            movement.type === 'IN'
+              ? 'text-green-600 dark:text-green-400'
+              : movement.type === 'OUT'
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-blue-600 dark:text-blue-400'
+          }`}>
+            {movement.type === 'IN' ? '+' : movement.type === 'OUT' ? '-' : ''}
+            {movement.quantity}
+          </span>
+          {getConditionBadge(movement.condition)}
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <span className="text-gray-500 dark:text-gray-400">Source:</span>
+          <p className="text-gray-900 dark:text-gray-100">
+            {movement.sourceSite?.name || '-'}
+          </p>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Destination:</span>
+          <p className="text-gray-900 dark:text-gray-100">
+            {movement.targetSite?.name || '-'}
+          </p>
+        </div>
+        {movement.operator && (
+          <div className="col-span-2">
+            <span className="text-gray-500 dark:text-gray-400">Opérateur:</span>
+            <p className="text-gray-900 dark:text-gray-100 flex items-center gap-1">
+              <User className="h-3 w-3 text-gray-400" />
+              {movement.operator}
+            </p>
+          </div>
+        )}
+        {movement.comment && (
+          <div className="col-span-2">
+            <span className="text-gray-500 dark:text-gray-400">Commentaire:</span>
+            <p className="text-gray-900 dark:text-gray-100 text-sm">{movement.comment}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-gray-100">
             Mouvements de Stock
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Historique des entrées, sorties et transferts
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau mouvement
+        <div className="flex gap-2">
+          <Button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none">
+            <Plus className="mr-1 h-4 w-4" />
+            <span className="sm:hidden">Mouvement</span>
+            <span className="hidden sm:inline">Nouveau mouvement</span>
           </Button>
-          <Button variant="secondary" onClick={() => setIsPackMovementModalOpen(true)}>
-            <Package className="mr-2 h-4 w-4" />
-            Mouvement du pack
+          <Button variant="secondary" onClick={() => setIsPackMovementModalOpen(true)} className="flex-1 sm:flex-none">
+            <Package className="mr-1 h-4 w-4" />
+            <span className="sm:hidden">Pack</span>
+            <span className="hidden sm:inline">Mouvement pack</span>
           </Button>
         </div>
       </div>
@@ -170,79 +259,75 @@ export default function Movements() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher produit, opérateur..."
+                placeholder="Rechercher..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
 
-            {/* Type filter */}
-            <Select
-              value={typeFilter}
-              onChange={(e) => updateParams({ type: e.target.value })}
-              className="w-40"
-            >
-              <option value="">Tous les types</option>
-              <option value="IN">Entrée</option>
-              <option value="OUT">Sortie</option>
-              <option value="TRANSFER">Transfert</option>
-            </Select>
+            {/* Filters - horizontal scroll on mobile */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Select
+                value={typeFilter}
+                onChange={(e) => updateParams({ type: e.target.value })}
+                className="min-w-[110px] sm:w-32"
+              >
+                <option value="">Type</option>
+                <option value="IN">Entrée</option>
+                <option value="OUT">Sortie</option>
+                <option value="TRANSFER">Transfert</option>
+              </Select>
 
-            {/* Site filter */}
-            <Select
-              value={siteFilter}
-              onChange={(e) => updateParams({ site: e.target.value })}
-              className="w-44"
-            >
-              <option value="">Tous les sites</option>
-              {sites?.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </Select>
+              <Select
+                value={siteFilter}
+                onChange={(e) => updateParams({ site: e.target.value })}
+                className="min-w-[120px] sm:w-36"
+              >
+                <option value="">Site</option>
+                {sites?.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
+              </Select>
 
-            {/* Condition filter */}
-            <Select
-              value={conditionFilter}
-              onChange={(e) => updateParams({ condition: e.target.value })}
-              className="w-36"
-            >
-              <option value="">Tout état</option>
-              <option value="NEW">Neuf</option>
-              <option value="USED">Occasion</option>
-            </Select>
+              <Select
+                value={conditionFilter}
+                onChange={(e) => updateParams({ condition: e.target.value })}
+                className="min-w-[100px] sm:w-28"
+              >
+                <option value="">État</option>
+                <option value="NEW">Neuf</option>
+                <option value="USED">Occasion</option>
+              </Select>
 
-            {/* Date range */}
-            <div className="flex items-center gap-2">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => updateParams({ startDate: e.target.value })}
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="h-10 min-w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 title="Date de début"
               />
-              <span className="text-gray-500">→</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => updateParams({ endDate: e.target.value })}
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="h-10 min-w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 title="Date de fin"
               />
             </div>
 
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={resetFilters}>
-                <Filter className="mr-1 h-4 w-4" />
-                Réinitialiser
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="whitespace-nowrap">
+                <Filter className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Réinitialiser</span>
               </Button>
             )}
           </div>
@@ -250,16 +335,16 @@ export default function Movements() {
       </Card>
 
       {/* Summary stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                <ArrowDownCircle className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-green-100 p-1.5 md:p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                <ArrowDownCircle className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Entrées</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Entrées</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {filteredMovements?.filter(m => m.type === 'IN').length || 0}
                 </p>
               </div>
@@ -268,14 +353,14 @@ export default function Movements() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-red-100 p-2 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                <ArrowUpCircle className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-red-100 p-1.5 md:p-2 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                <ArrowUpCircle className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Sorties</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Sorties</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {filteredMovements?.filter(m => m.type === 'OUT').length || 0}
                 </p>
               </div>
@@ -284,14 +369,14 @@ export default function Movements() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                <ArrowLeftRight className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-blue-100 p-1.5 md:p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                <ArrowLeftRight className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Transferts</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Transferts</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {filteredMovements?.filter(m => m.type === 'TRANSFER').length || 0}
                 </p>
               </div>
@@ -300,14 +385,14 @@ export default function Movements() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-purple-100 p-2 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                <Package className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-purple-100 p-1.5 md:p-2 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                <Package className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total mouvements</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Total</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {pagination?.total || 0}
                 </p>
               </div>
@@ -316,8 +401,53 @@ export default function Movements() {
         </Card>
       </div>
 
-      {/* Movements Table */}
-      <Card>
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <span className="ml-2 text-gray-500">Chargement...</span>
+          </div>
+        ) : filteredMovements?.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            Aucun mouvement trouvé
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredMovements?.map((movement) => (
+              <MovementCard key={movement.id} movement={movement} />
+            ))}
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => updateParams({ page: String(page - 1) })}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {page} / {pagination.totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page >= pagination.totalPages}
+              onClick={() => updateParams({ page: String(page + 1) })}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Movements Table */}
+      <Card className="hidden lg:block">
         <CardHeader>
           <CardTitle>Historique des mouvements</CardTitle>
         </CardHeader>
@@ -379,10 +509,7 @@ export default function Movements() {
                             {formatDate(movement.movementDate)}
                           </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {new Date(movement.movementDate).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatTime(movement.movementDate)}
                           </span>
                         </div>
                       </td>
@@ -455,7 +582,7 @@ export default function Movements() {
             </div>
           )}
 
-          {/* Pagination */}
+          {/* Desktop Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -485,13 +612,6 @@ export default function Movements() {
           )}
         </CardContent>
       </Card>
-
-      {/* Results count */}
-      {filteredMovements && filteredMovements.length > 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {filteredMovements.length} mouvement(s) sur cette page
-        </p>
-      )}
 
       {/* Create Movement Modal */}
       <Modal

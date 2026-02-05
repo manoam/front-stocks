@@ -398,7 +398,40 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Cards */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:hidden">
+              {lowStockAlerts.slice(0, 10).map((alert) => (
+                <div key={alert.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{alert.reference}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{alert.assembly || '-'}</p>
+                    </div>
+                    <Badge variant={alert.supplyRisk === 'HIGH' ? 'danger' : alert.supplyRisk === 'MEDIUM' ? 'warning' : 'success'}>
+                      {alert.supplyRisk || 'LOW'}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <span className={`font-medium ${alert.total === 0 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                      Stock: {alert.total} ({alert.totalNew}N / {alert.totalUsed}O)
+                    </span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Unités: {alert.possibleUnits}
+                    </span>
+                  </div>
+                  {(alert.primarySupplier || alert.leadTime) && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {alert.primarySupplier && <span>{alert.primarySupplier}</span>}
+                      {alert.primarySupplier && alert.leadTime && <span> • </span>}
+                      {alert.leadTime && <span>Délai: {alert.leadTime}</span>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">

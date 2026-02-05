@@ -208,12 +208,12 @@ export default function Settings() {
     <div className="space-y-6">
       {/* Types d'assemblages (Types de bornes) */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2">
             <Boxes className="h-5 w-5" />
-            Types d'assemblages
+            <span className="text-base sm:text-lg">Types d'assemblages</span>
           </CardTitle>
-          <Button size="sm" onClick={() => handleOpenAssemblyTypeModal()}>
+          <Button size="sm" onClick={() => handleOpenAssemblyTypeModal()} className="w-full sm:w-auto">
             <Plus className="mr-1 h-4 w-4" />
             Ajouter
           </Button>
@@ -231,66 +231,110 @@ export default function Settings() {
               Aucun type d'assemblage créé
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
-                    <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
-                    <th className="py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Assemblages</th>
-                    <th className="py-2 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {assemblyTypesData.data.map((assemblyType) => (
-                    <tr key={assemblyType.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                      <td className="py-2 font-medium text-gray-900 dark:text-gray-100">
-                        {assemblyType.name}
-                      </td>
-                      <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {assemblyType.description || '-'}
-                      </td>
-                      <td className="py-2 text-center text-gray-600 dark:text-gray-400">
-                        {assemblyType._count?.assemblies || 0}
-                      </td>
-                      <td className="py-2">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAssemblyTypeModal(assemblyType)}
-                            title="Modifier"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteAssemblyTypeConfirm(assemblyType)}
-                            title="Supprimer"
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              {/* Mobile Cards */}
+              <div className="space-y-3 lg:hidden">
+                {assemblyTypesData.data.map((assemblyType) => (
+                  <div
+                    key={assemblyType.id}
+                    className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{assemblyType.name}</h3>
+                        {assemblyType.description && (
+                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {assemblyType.description}
+                          </p>
+                        )}
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          {assemblyType._count?.assemblies || 0} assemblage(s)
+                        </p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenAssemblyTypeModal(assemblyType)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteAssemblyTypeConfirm(assemblyType)}
+                          className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
+                      <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
+                      <th className="py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Assemblages</th>
+                      <th className="py-2 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {assemblyTypesData.data.map((assemblyType) => (
+                      <tr key={assemblyType.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                        <td className="py-2 font-medium text-gray-900 dark:text-gray-100">
+                          {assemblyType.name}
+                        </td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">
+                          {assemblyType.description || '-'}
+                        </td>
+                        <td className="py-2 text-center text-gray-600 dark:text-gray-400">
+                          {assemblyType._count?.assemblies || 0}
+                        </td>
+                        <td className="py-2">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenAssemblyTypeModal(assemblyType)}
+                              title="Modifier"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteAssemblyTypeConfirm(assemblyType)}
+                              title="Supprimer"
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Assemblages */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Assemblages
+            <span className="text-base sm:text-lg">Assemblages</span>
           </CardTitle>
-          <Button size="sm" onClick={() => handleOpenAssemblyModal()}>
+          <Button size="sm" onClick={() => handleOpenAssemblyModal()} className="w-full sm:w-auto">
             <Plus className="mr-1 h-4 w-4" />
             Ajouter
           </Button>
@@ -308,29 +352,24 @@ export default function Settings() {
               Aucun assemblage créé
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
-                    <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
-                    <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Types d'assemblage</th>
-                    <th className="py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Produits</th>
-                    <th className="py-2 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {assembliesData.data.map((assembly) => (
-                    <tr key={assembly.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                      <td className="py-2 font-medium text-gray-900 dark:text-gray-100">
-                        {assembly.name}
-                      </td>
-                      <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {assembly.description || '-'}
-                      </td>
-                      <td className="py-2 text-gray-600 dark:text-gray-400">
+            <>
+              {/* Mobile Cards */}
+              <div className="space-y-3 lg:hidden">
+                {assembliesData.data.map((assembly) => (
+                  <div
+                    key={assembly.id}
+                    className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{assembly.name}</h3>
+                        {assembly.description && (
+                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {assembly.description}
+                          </p>
+                        )}
                         {assembly.assemblyTypes?.length ? (
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {assembly.assemblyTypes.map((type) => (
                               <span
                                 key={type.id}
@@ -340,39 +379,100 @@ export default function Settings() {
                               </span>
                             ))}
                           </div>
-                        ) : (
-                          <span className="italic text-gray-400">Aucun type</span>
-                        )}
-                      </td>
-                      <td className="py-2 text-center text-gray-600 dark:text-gray-400">
-                        {assembly._count?.products || 0}
-                      </td>
-                      <td className="py-2">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAssemblyModal(assembly)}
-                            title="Modifier"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteAssemblyConfirm(assembly)}
-                            title="Supprimer"
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+                        ) : null}
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          {assembly._count?.products || 0} produit(s)
+                        </p>
+                      </div>
+                      <div className="flex gap-1 shrink-0 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenAssemblyModal(assembly)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteAssemblyConfirm(assembly)}
+                          className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
+                      <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
+                      <th className="py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Types d'assemblage</th>
+                      <th className="py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Produits</th>
+                      <th className="py-2 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {assembliesData.data.map((assembly) => (
+                      <tr key={assembly.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                        <td className="py-2 font-medium text-gray-900 dark:text-gray-100">
+                          {assembly.name}
+                        </td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">
+                          {assembly.description || '-'}
+                        </td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">
+                          {assembly.assemblyTypes?.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {assembly.assemblyTypes.map((type) => (
+                                <span
+                                  key={type.id}
+                                  className="inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-900/30 dark:text-primary-300"
+                                >
+                                  {type.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="italic text-gray-400">Aucun type</span>
+                          )}
+                        </td>
+                        <td className="py-2 text-center text-gray-600 dark:text-gray-400">
+                          {assembly._count?.products || 0}
+                        </td>
+                        <td className="py-2">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenAssemblyModal(assembly)}
+                              title="Modifier"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteAssemblyConfirm(assembly)}
+                              title="Supprimer"
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

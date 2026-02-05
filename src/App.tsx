@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -27,30 +29,36 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="products" element={<Products />} />
-              <Route path="products/:id" element={<ProductDetail />} />
-              <Route path="packs" element={<Packs />} />
-              <Route path="stocks" element={<Stocks />} />
-              <Route path="movements" element={<Movements />} />
-              <Route path="orders" element={<Orders />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="suppliers/:id" element={<SupplierDetail />} />
-              <Route path="sites" element={<Sites />} />
-              <Route path="import-export" element={<ImportExport />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="products" element={<Products />} />
+                  <Route path="products/:id" element={<ProductDetail />} />
+                  <Route path="packs" element={<Packs />} />
+                  <Route path="stocks" element={<Stocks />} />
+                  <Route path="movements" element={<Movements />} />
+                  <Route path="orders" element={<Orders />} />
+                  <Route path="suppliers" element={<Suppliers />} />
+                  <Route path="suppliers/:id" element={<SupplierDetail />} />
+                  <Route path="sites" element={<Sites />} />
+                  <Route path="import-export" element={<ImportExport />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2, PackageOpen, ArrowDownCircle, ArrowUpCircle, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, PackageOpen, ArrowDownCircle, ArrowUpCircle, Search, Package } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
@@ -217,72 +217,138 @@ export default function Packs() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
-                    <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Type</th>
-                    <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
-                    <th className="py-3 text-center font-semibold text-gray-700 dark:text-gray-300">Produits</th>
-                    <th className="py-3 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {filteredPacks.map((pack) => (
-                    <tr key={pack.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                      <td className="py-3">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {pack.name}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+            <>
+              {/* Mobile Cards */}
+              <div className="space-y-3 lg:hidden">
+                {filteredPacks.map((pack) => (
+                  <div
+                    key={pack.id}
+                    className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-lg p-2 ${
                           pack.type === 'IN'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
                         }`}>
-                          {pack.type === 'IN' ? (
-                            <><ArrowDownCircle className="h-3.5 w-3.5" /> Entree</>
-                          ) : (
-                            <><ArrowUpCircle className="h-3.5 w-3.5" /> Sortie</>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                        {pack.description || '-'}
-                      </td>
-                      <td className="py-3 text-center">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-                          {pack.items?.length || pack._count?.items || 0} produit{(pack.items?.length || 0) > 1 ? 's' : ''}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenModal(pack)}
-                            title="Modifier"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteConfirm(pack)}
-                            title="Supprimer"
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Package className="h-5 w-5" />
                         </div>
-                      </td>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{pack.name}</h3>
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                            pack.type === 'IN'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-orange-600 dark:text-orange-400'
+                          }`}>
+                            {pack.type === 'IN' ? (
+                              <><ArrowDownCircle className="h-3 w-3" /> Entrée</>
+                            ) : (
+                              <><ArrowUpCircle className="h-3 w-3" /> Sortie</>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenModal(pack)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteConfirm(pack)}
+                          className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {pack.description && (
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                        {pack.description}
+                      </p>
+                    )}
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {pack.items?.length || pack._count?.items || 0} produit{(pack.items?.length || 0) > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Nom</th>
+                      <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Type</th>
+                      <th className="py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
+                      <th className="py-3 text-center font-semibold text-gray-700 dark:text-gray-300">Produits</th>
+                      <th className="py-3 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {filteredPacks.map((pack) => (
+                      <tr key={pack.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                        <td className="py-3">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {pack.name}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            pack.type === 'IN'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                          }`}>
+                            {pack.type === 'IN' ? (
+                              <><ArrowDownCircle className="h-3.5 w-3.5" /> Entree</>
+                            ) : (
+                              <><ArrowUpCircle className="h-3.5 w-3.5" /> Sortie</>
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                          {pack.description || '-'}
+                        </td>
+                        <td className="py-3 text-center">
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                            {pack.items?.length || pack._count?.items || 0} produit{(pack.items?.length || 0) > 1 ? 's' : ''}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenModal(pack)}
+                              title="Modifier"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirm(pack)}
+                              title="Supprimer"
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -364,12 +430,12 @@ export default function Packs() {
 
             {packItems.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-gray-500 italic py-4 text-center border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                Aucun produit ajoute. Cliquez sur "Ajouter un produit" pour commencer.
+                Aucun produit ajouté. Cliquez sur "Ajouter" pour commencer.
               </p>
             ) : (
               <div className="space-y-3">
                 {packItems.map((item, index) => (
-                  <div key={item.key} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <div key={item.key} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <div className="flex-1">
                       <ProductSearch
                         label=""
@@ -377,23 +443,25 @@ export default function Packs() {
                         initialProduct={item.product as Product | null}
                       />
                     </div>
-                    <div className="w-24">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleItemQuantityChange(index, parseInt(e.target.value) || 1)}
-                        placeholder="Qte"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 sm:w-24">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleItemQuantityChange(index, parseInt(e.target.value) || 1)}
+                          placeholder="Qté"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(index)}
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveItem(index)}
-                      className="mt-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
               </div>

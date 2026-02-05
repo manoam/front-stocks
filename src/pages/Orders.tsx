@@ -145,89 +145,164 @@ export default function Orders() {
     ?.filter(o => o.status === 'PENDING')
     .reduce((sum, o) => sum + o.quantity, 0) || 0;
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  // Mobile card component
+  const OrderCard = ({ order }: { order: Order }) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <Link
+            to={`/products/${order.productId}`}
+            className="font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+          >
+            {order.product.reference}
+          </Link>
+          {order.product.description && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+              {order.product.description}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {getStatusIcon(order.status)}
+          {getStatusBadge(order.status)}
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <span className="text-gray-500 dark:text-gray-400">Fournisseur:</span>
+          <p className="text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
+            <Truck className="h-3 w-3 text-gray-400" />
+            {order.supplier.name}
+          </p>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Quantité:</span>
+          <p className="font-bold text-gray-900 dark:text-gray-100">
+            {order.quantity}
+            {order.receivedQty && order.receivedQty !== order.quantity && (
+              <span className="ml-1 text-xs font-normal text-gray-500">(reçu: {order.receivedQty})</span>
+            )}
+          </p>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Date commande:</span>
+          <p className="text-gray-900 dark:text-gray-100 flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-gray-400" />
+            {formatDate(order.orderDate)}
+          </p>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Date prévue:</span>
+          <p className="text-gray-900 dark:text-gray-100">
+            {formatDate(order.expectedDate)}
+          </p>
+        </div>
+        {order.destinationSite && (
+          <div className="col-span-2">
+            <span className="text-gray-500 dark:text-gray-400">Destination:</span>
+            <p className="text-gray-900 dark:text-gray-100">{order.destinationSite.name}</p>
+          </div>
+        )}
+      </div>
+
+      {order.status === 'PENDING' && (
+        <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setReceiveOrderId(order.id)}
+            className="w-full"
+          >
+            <PackageCheck className="mr-1 h-4 w-4" />
+            Réceptionner
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-gray-100">
             Commandes
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Gestion des commandes fournisseurs
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
-          Nouvelle commande
+          <span className="sm:hidden">Ajouter</span>
+          <span className="hidden sm:inline">Nouvelle commande</span>
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher produit, fournisseur..."
+                placeholder="Rechercher..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
 
-            {/* Status filter */}
-            <Select
-              value={statusFilter}
-              onChange={(e) => updateParams({ status: e.target.value })}
-              className="w-40"
-            >
-              <option value="">Tous les états</option>
-              <option value="PENDING">En cours</option>
-              <option value="COMPLETED">Terminées</option>
-              <option value="CANCELLED">Annulées</option>
-            </Select>
+            {/* Filters - horizontal scroll on mobile */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Select
+                value={statusFilter}
+                onChange={(e) => updateParams({ status: e.target.value })}
+                className="min-w-[120px] sm:w-36"
+              >
+                <option value="">Statut</option>
+                <option value="PENDING">En cours</option>
+                <option value="COMPLETED">Terminées</option>
+                <option value="CANCELLED">Annulées</option>
+              </Select>
 
-            {/* Supplier filter */}
-            <Select
-              value={supplierFilter}
-              onChange={(e) => updateParams({ supplier: e.target.value })}
-              className="w-48"
-            >
-              <option value="">Tous les fournisseurs</option>
-              {suppliers?.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </Select>
+              <Select
+                value={supplierFilter}
+                onChange={(e) => updateParams({ supplier: e.target.value })}
+                className="min-w-[130px] sm:w-40"
+              >
+                <option value="">Fournisseur</option>
+                {suppliers?.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </Select>
 
-            {/* Date range */}
-            <div className="flex items-center gap-2">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => updateParams({ startDate: e.target.value })}
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="h-10 min-w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 title="Date de début"
               />
-              <span className="text-gray-500">→</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => updateParams({ endDate: e.target.value })}
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="h-10 min-w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 title="Date de fin"
               />
             </div>
 
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={resetFilters}>
-                <Filter className="mr-1 h-4 w-4" />
-                Réinitialiser
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="whitespace-nowrap">
+                <Filter className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Réinitialiser</span>
               </Button>
             )}
           </div>
@@ -235,16 +310,16 @@ export default function Orders() {
       </Card>
 
       {/* Summary stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-yellow-100 p-2 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
-                <Clock className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-yellow-100 p-1.5 md:p-2 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                <Clock className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">En cours</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">En cours</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {pendingCount}
                 </p>
               </div>
@@ -253,14 +328,14 @@ export default function Orders() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                <CheckCircle className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-green-100 p-1.5 md:p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Terminées</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Terminées</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {completedCount}
                 </p>
               </div>
@@ -269,14 +344,14 @@ export default function Orders() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-red-100 p-2 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                <XCircle className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-red-100 p-1.5 md:p-2 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                <XCircle className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Annulées</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Annulées</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {cancelledCount}
                 </p>
               </div>
@@ -285,14 +360,14 @@ export default function Orders() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                <Package className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="rounded-lg bg-blue-100 p-1.5 md:p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                <Package className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Qté en attente</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Qté attente</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {totalQuantityPending}
                 </p>
               </div>
@@ -301,8 +376,53 @@ export default function Orders() {
         </Card>
       </div>
 
-      {/* Orders Table */}
-      <Card>
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <span className="ml-2 text-gray-500">Chargement...</span>
+          </div>
+        ) : filteredOrders?.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            Aucune commande trouvée
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredOrders?.map((order) => (
+              <OrderCard key={order.id} order={order} />
+            ))}
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => updateParams({ page: String(page - 1) })}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {page} / {pagination.totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page >= pagination.totalPages}
+              onClick={() => updateParams({ page: String(page + 1) })}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Orders Table */}
+      <Card className="hidden lg:block">
         <CardHeader>
           <CardTitle>Liste des commandes</CardTitle>
         </CardHeader>
@@ -431,7 +551,7 @@ export default function Orders() {
             </div>
           )}
 
-          {/* Pagination */}
+          {/* Desktop Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">
