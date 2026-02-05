@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit2, Trash2, Eye, Link, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Link, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Select from '../components/ui/Select';
@@ -10,13 +10,16 @@ import Modal from '../components/ui/Modal';
 import ProductForm from '../components/forms/ProductForm';
 import ProductSupplierForm from '../components/forms/ProductSupplierForm';
 import { useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import api from '../services/api';
 import type { Product, PaginatedResponse, Assembly, AssemblyType } from '../types';
 
 // Helper to get full image URL
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
-const getFullImageUrl = (url: string) => {
-  if (!url) return '';
+const DEFAULT_PRODUCT_IMAGE = '/default-product.svg';
+
+const getFullImageUrl = (url: string | null | undefined): string => {
+  if (!url) return DEFAULT_PRODUCT_IMAGE;
   if (url.startsWith('http')) return url;
   return `${API_BASE_URL}${url}`;
 };
@@ -149,11 +152,6 @@ export default function Products() {
     return <Badge variant={variants[risk]}>{labels[risk]}</Badge>;
   };
 
-  const getTotalStock = (product: Product) => {
-    if (!product.stocks) return 0;
-    return product.stocks.reduce((sum, s) => sum + s.quantityNew + s.quantityUsed, 0);
-  };
-
   const handleCreate = () => {
     setSelectedProduct(undefined);
     setIsModalOpen(true);
@@ -181,32 +179,25 @@ export default function Products() {
   const ProductCard = ({ product }: { product: Product }) => (
     <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
       <div className="flex items-start gap-3">
-        {product.imageUrl && (
-          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
-            <img
-              src={getFullImageUrl(product.imageUrl!)}
-              alt={product.reference}
-              className="h-full w-full object-cover"
-            />
-          </div>
-        )}
+        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+          <img
+            src={getFullImageUrl(product.imageUrl)}
+            alt={product.reference}
+            className="h-full w-full object-cover"
+          />
+        </div>
         <div className="flex-1 min-w-0">
           <button
             onClick={() => navigate(`/products/${product.id}`)}
             className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300 text-left truncate block w-full"
           >
-            {product.reference}
+            {product.description || product.reference}
           </button>
-          {product.description && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-              {product.description}
-            </p>
-          )}
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+            {product.reference}
+          </p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             {getRiskBadge(product.supplyRisk)}
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Stock: {getTotalStock(product)}
-            </span>
           </div>
         </div>
       </div>
@@ -215,7 +206,7 @@ export default function Products() {
         <div>
           <span className="text-gray-500 dark:text-gray-400">Assemblage:</span>
           <p className="text-gray-900 dark:text-gray-100 truncate">
-            {product.assembly?.name || '-'}
+            {product.assembly?.name || product.assemblyType?.name || '-'}
           </p>
         </div>
         <div>
@@ -348,28 +339,14 @@ export default function Products() {
         )}
 
         {/* Mobile Pagination */}
-        {data && data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {page} / {data.pagination.totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === data.pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        {data && (
+          <Pagination
+            currentPage={page}
+            totalPages={data.pagination.totalPages}
+            totalItems={data.pagination.total}
+            onPageChange={setPage}
+            className="pt-4"
+          />
         )}
       </div>
 
@@ -381,7 +358,7 @@ export default function Products() {
               <thead className="sticky top-0 z-10">
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
-                    Référence
+                    Produit
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Assemblage
@@ -391,9 +368,6 @@ export default function Products() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Risque appro
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
-                    Stock total
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                     Emplacement
@@ -406,7 +380,7 @@ export default function Products() {
               <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center">
+                    <td colSpan={6} className="px-6 py-8 text-center">
                       <div className="flex items-center justify-center">
                         <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
                         <span className="ml-2 text-gray-500">Chargement...</span>
@@ -415,7 +389,7 @@ export default function Products() {
                   </tr>
                 ) : data?.data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                       Aucun produit trouvé
                     </td>
                   </tr>
@@ -424,34 +398,30 @@ export default function Products() {
                     <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {product.imageUrl && (
-                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
-                              <img
-                                src={getFullImageUrl(product.imageUrl!)}
-                                alt={product.reference}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          )}
+                          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+                            <img
+                              src={getFullImageUrl(product.imageUrl)}
+                              alt={product.reference}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
                           <div className="flex flex-col">
                             <button
                               onClick={() => navigate(`/products/${product.id}`)}
                               className="font-medium text-primary-600 hover:text-primary-800 hover:underline dark:text-primary-400 dark:hover:text-primary-300 text-left"
                             >
-                              {product.reference}
+                              {product.description || product.reference}
                             </button>
-                            {product.description && (
-                              <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                {product.description}
-                              </span>
-                            )}
+                            <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                              {product.reference}
+                            </span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-gray-600 dark:text-gray-400">
-                            {product.assembly?.name || '-'}
+                            {product.assembly?.name || (product.assemblyType ? '' : '-')}
                           </span>
                           {product.assemblyType && (
                             <span className="text-xs text-primary-500 dark:text-primary-400">
@@ -467,9 +437,6 @@ export default function Products() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         {getRiskBadge(product.supplyRisk)}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{getTotalStock(product)}</span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <span className="text-gray-600 dark:text-gray-400">{product.location || '-'}</span>
@@ -519,30 +486,14 @@ export default function Products() {
           </div>
 
           {/* Desktop Pagination */}
-          {data && data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Page {data.pagination.page} sur {data.pagination.totalPages} ({data.pagination.total} résultats)
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Précédent
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page === data.pagination.totalPages}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Suivant
-                </Button>
-              </div>
-            </div>
+          {data && (
+            <Pagination
+              currentPage={page}
+              totalPages={data.pagination.totalPages}
+              totalItems={data.pagination.total}
+              onPageChange={setPage}
+              className="border-t border-gray-200 px-6 py-3 dark:border-gray-700"
+            />
           )}
         </CardContent>
       </Card>

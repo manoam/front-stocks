@@ -11,8 +11,6 @@ import {
   XCircle,
   Truck,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   PackageCheck,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -23,6 +21,7 @@ import Modal from '../components/ui/Modal';
 import OrderForm from '../components/forms/OrderForm';
 import ReceiveOrderForm from '../components/forms/ReceiveOrderForm';
 import { useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import api from '../services/api';
 import type { Order, Supplier, ApiResponse, PaginatedResponse } from '../types';
 
@@ -397,27 +396,13 @@ export default function Orders() {
 
         {/* Mobile Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => updateParams({ page: String(page - 1) })}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {page} / {pagination.totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => updateParams({ page: String(page + 1) })}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            onPageChange={(p) => updateParams({ page: String(p) })}
+            totalItems={pagination.total}
+            className="pt-4"
+          />
         )}
       </div>
 
@@ -437,35 +422,35 @@ export default function Orders() {
               Aucune commande trouvée
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[calc(100vh-400px)]">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Date
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Produit
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Fournisseur
                     </th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Qté
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Statut
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Date prévue
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Destination
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Réf. fournisseur
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                       Actions
                     </th>
                   </tr>
@@ -553,30 +538,13 @@ export default function Orders() {
 
           {/* Desktop Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Page {pagination.page} sur {pagination.totalPages} ({pagination.total} résultats)
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => updateParams({ page: String(page - 1) })}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Précédent
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => updateParams({ page: String(page + 1) })}
-                >
-                  Suivant
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+              <Pagination
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                onPageChange={(p) => updateParams({ page: String(p) })}
+                totalItems={pagination.total}
+              />
             </div>
           )}
         </CardContent>

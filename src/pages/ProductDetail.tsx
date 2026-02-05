@@ -130,10 +130,9 @@ export default function ProductDetail() {
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.reference}</h1>
-            {data.description && (
-              <p className="text-gray-600 dark:text-gray-400">{data.description}</p>
-            )}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {data.description || data.reference}
+            </h1>
           </div>
         </div>
         <div className="flex gap-2">
@@ -176,19 +175,26 @@ export default function ProductDetail() {
                 <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Emplacement</dt>
                 <dd className="mt-1 text-gray-900 dark:text-gray-100">{data.location || '-'}</dd>
               </div>
-              {data.assembly && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Assemblage</dt>
-                  <dd className="mt-1 text-gray-900 dark:text-gray-100">
-                    {data.assembly.name}
-                    {data.assembly.assemblyTypes && data.assembly.assemblyTypes.length > 0 && (
-                      <span className="ml-2 text-sm text-gray-500">
-                        ({data.assembly.assemblyTypes.map((t) => t.name).join(', ')})
-                      </span>
-                    )}
-                  </dd>
-                </div>
-              )}
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Assemblage</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">{data.assembly?.name || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Type d'assemblage</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">{data.assemblyType?.name || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Produit créé le</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                  {data.createdAt
+                    ? new Date(data.createdAt).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                    : '-'}
+                </dd>
+              </div>
               {data.comment && (
                 <div className="col-span-2">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Commentaire</dt>

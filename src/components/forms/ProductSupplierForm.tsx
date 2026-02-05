@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Star } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import Select from '../ui/Select';
+import SupplierSearch from '../ui/SupplierSearch';
 import api from '../../services/api';
-import type { Product, Supplier, ProductSupplier, ApiResponse, PaginatedResponse } from '../../types';
+import type { Product, Supplier, ProductSupplier, ApiResponse } from '../../types';
 
 interface ProductSupplierFormProps {
   product: Product;
@@ -33,15 +33,6 @@ export default function ProductSupplierForm({ product, onClose }: ProductSupplie
     productUrl: '',
     shippingCost: undefined,
     isPrimary: false,
-  });
-
-  // Fetch suppliers
-  const { data: suppliersData } = useQuery({
-    queryKey: ['suppliers', 'all'],
-    queryFn: async () => {
-      const res = await api.get<PaginatedResponse<Supplier>>('/suppliers?limit=1000');
-      return res.data.data;
-    },
   });
 
   // Fetch product details with suppliers
@@ -100,10 +91,12 @@ export default function ProductSupplierForm({ product, onClose }: ProductSupplie
     createMutation.mutate(newLink);
   };
 
-  // Filter out already linked suppliers
-  const availableSuppliers = suppliersData?.filter(
-    (s) => !productData?.productSuppliers?.some((ps) => ps.supplierId === s.id)
-  );
+  const handleSupplierChange = (supplierId: string, _supplier: Supplier | null) => {
+    setNewLink({ ...newLink, supplierId });
+  };
+
+  // Get IDs of already linked suppliers to exclude from search
+  const linkedSupplierIds = productData?.productSuppliers?.map((ps) => ps.supplierId) || [];
 
   return (
     <div className="space-y-6">
@@ -173,22 +166,11 @@ export default function ProductSupplierForm({ product, onClose }: ProductSupplie
         <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
           <h4 className="mb-3 font-medium text-gray-900 dark:text-gray-100">Ajouter un fournisseur</h4>
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Fournisseur <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={newLink.supplierId}
-                onChange={(e) => setNewLink({ ...newLink, supplierId: e.target.value })}
-              >
-                <option value="">Sélectionner un fournisseur</option>
-                {availableSuppliers?.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <SupplierSearch
+              onChange={handleSupplierChange}
+              label="Fournisseur *"
+              excludeIds={linkedSupplierIds}
+            />
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -287,7 +269,6 @@ export default function ProductSupplierForm({ product, onClose }: ProductSupplie
         <Button
           variant="secondary"
           onClick={() => setShowAddForm(true)}
-          disabled={!availableSuppliers?.length}
         >
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un fournisseur

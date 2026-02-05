@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, Eye } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import SupplierForm from '../components/forms/SupplierForm';
 import { useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import api from '../services/api';
 import type { Supplier, PaginatedResponse } from '../types';
 
@@ -207,27 +208,13 @@ export default function Suppliers() {
 
         {/* Mobile Pagination */}
         {data && data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {page} / {data.pagination.totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === data.pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={data.pagination.totalPages}
+            onPageChange={setPage}
+            totalItems={data.pagination.total}
+            className="pt-4"
+          />
         )}
       </div>
 
@@ -383,31 +370,13 @@ export default function Suppliers() {
 
       {/* Desktop Pagination */}
       {data && data.pagination.totalPages > 1 && (
-        <div className="hidden lg:flex items-center justify-between">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Page {data.pagination.page} sur {data.pagination.totalPages} ({data.pagination.total} résultats)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Précédent
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === data.pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              Suivant
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={page}
+          totalPages={data.pagination.totalPages}
+          onPageChange={setPage}
+          totalItems={data.pagination.total}
+          className="hidden lg:flex"
+        />
       )}
 
       {/* Create/Edit Modal */}
