@@ -2,7 +2,7 @@ import Keycloak from 'keycloak-js';
 
 const keycloakConfig = {
   url: import.meta.env.VITE_KEYCLOAK_URL || 'https://keycloak-production-9856.up.railway.app',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'stock-management',
+  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'konitys',
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'stock-management-client',
 };
 
