@@ -36,6 +36,11 @@ export interface Supplier {
   phone?: string;
   website?: string;
   address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
   comment?: string;
   createdAt: string;
   _count?: {

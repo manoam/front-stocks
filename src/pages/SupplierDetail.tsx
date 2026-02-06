@@ -35,7 +35,6 @@ interface SupplierWithRelations extends Supplier {
       reference: string;
       description?: string;
       photoUrl?: string;
-      group?: { name: string };
     };
   })[];
   orders: Order[];
@@ -228,16 +227,41 @@ export default function SupplierDetail() {
               <div>
                 <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Adresse</dt>
                 <dd className="mt-1">
-                  {data.address ? (
-                    <span className="flex items-center gap-1 text-gray-900 dark:text-gray-100">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      {data.address}
-                    </span>
+                  {data.address || data.postalCode || data.city || data.country ? (
+                    <div className="flex items-start gap-1 text-gray-900 dark:text-gray-100">
+                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        {data.address && <div>{data.address}</div>}
+                        {(data.postalCode || data.city) && (
+                          <div>
+                            {data.postalCode} {data.city}
+                          </div>
+                        )}
+                        {data.country && <div>{data.country}</div>}
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
                 </dd>
               </div>
+              {(data.latitude !== null && data.latitude !== undefined) || (data.longitude !== null && data.longitude !== undefined) ? (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Coordonnées GPS</dt>
+                  <dd className="mt-1">
+                    <a
+                      href={`https://www.google.com/maps?q=${data.latitude},${data.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      {Number(data.latitude).toFixed(6)}, {Number(data.longitude).toFixed(6)}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </CardContent>
         </Card>
@@ -333,7 +357,6 @@ export default function SupplierDetail() {
                   <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
                     <th className="pb-2">Description</th>
                     <th className="pb-2">Référence</th>
-                    <th className="pb-2">Groupe</th>
                     <th className="pb-2">Réf. fournisseur</th>
                     <th className="pb-2 text-right">Prix HT</th>
                     <th className="pb-2">Délai</th>
@@ -363,9 +386,6 @@ export default function SupplierDetail() {
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">
                         {ps.product.reference}
-                      </td>
-                      <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {ps.product.group?.name || '-'}
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">{ps.supplierRef || '-'}</td>
                       <td className="py-2 text-right text-gray-900 dark:text-gray-100">

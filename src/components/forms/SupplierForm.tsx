@@ -1,9 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MapPin, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import api from '../../services/api';
 import type { Supplier, ApiResponse } from '../../types';
+
+// Fonction de géocodage via Nominatim (OpenStreetMap)
+const geocodeAddress = async (address: string, postalCode: string, city: string, country: string): Promise<{ lat: number; lon: number } | null> => {
+  // Besoin d'au moins adresse + ville ou CP + ville pour une recherche fiable
+  if (!city && !postalCode) return null;
+  if (!address && !postalCode) return null;
+
+  const parts = [address, postalCode, city, country].filter(Boolean);
+  const query = parts.join(', ');
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      {
+        headers: {
+          'Accept-Language': 'fr',
+        },
+      }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Erreur de géocodage:', error);
+    return null;
+  }
+};
 
 interface CreateSupplierInput {
   name: string;
@@ -12,6 +45,11 @@ interface CreateSupplierInput {
   phone?: string;
   website?: string;
   address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   comment?: string;
 }
 
@@ -20,6 +58,13 @@ interface SupplierFormProps {
   onSuccess: () => void;
   onCancel: () => void;
 }
+
+// Fonction pour vérifier si c'est un téléphone portable (à rejeter)
+const isMobilePhone = (phone: string): boolean => {
+  const cleanPhone = phone.replace(/[\s.-]/g, '');
+  // Portable français: 06, 07 ou +33 6, +33 7
+  return /^(?:(?:\+|00)33[\s.-]?[67]|0[67])/.test(cleanPhone);
+};
 
 export default function SupplierForm({ supplier, onSuccess, onCancel }: SupplierFormProps) {
   const queryClient = useQueryClient();
@@ -32,10 +77,18 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
     phone: '',
     website: '',
     address: '',
+    postalCode: '',
+    city: '',
+    country: 'France',
+    latitude: null,
+    longitude: null,
     comment: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const geocodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (supplier) {
@@ -46,6 +99,11 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
         phone: supplier.phone || '',
         website: supplier.website || '',
         address: supplier.address || '',
+        postalCode: supplier.postalCode || '',
+        city: supplier.city || '',
+        country: supplier.country || 'France',
+        latitude: supplier.latitude ?? null,
+        longitude: supplier.longitude ?? null,
         comment: supplier.comment || '',
       });
     }
@@ -91,7 +149,7 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
     },
   });
 
-  const handleChange = (field: keyof CreateSupplierInput, value: string) => {
+  const handleChange = (field: keyof CreateSupplierInput, value: string | number | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
@@ -100,7 +158,59 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
         return newErrors;
       });
     }
+    // Reset geocode status when address fields change
+    if (['address', 'postalCode', 'city', 'country'].includes(field)) {
+      setGeocodeStatus('idle');
+    }
   };
+
+  // Géocodage automatique quand l'adresse change (avec debounce)
+  useEffect(() => {
+    const { address, postalCode, city, country } = formData;
+
+    // Nettoyer le timeout précédent
+    if (geocodeTimeoutRef.current) {
+      clearTimeout(geocodeTimeoutRef.current);
+    }
+
+    // Vérifier si on a assez d'informations pour géocoder
+    const hasEnoughInfo = (address || postalCode) && city;
+    if (!hasEnoughInfo) {
+      return;
+    }
+
+    // Attendre 800ms après la dernière frappe avant de géocoder
+    geocodeTimeoutRef.current = setTimeout(async () => {
+      setIsGeocoding(true);
+      setGeocodeStatus('idle');
+
+      const result = await geocodeAddress(
+        address || '',
+        postalCode || '',
+        city || '',
+        country || 'France'
+      );
+
+      setIsGeocoding(false);
+
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: result.lat,
+          longitude: result.lon,
+        }));
+        setGeocodeStatus('success');
+      } else {
+        setGeocodeStatus('error');
+      }
+    }, 800);
+
+    return () => {
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+      }
+    };
+  }, [formData.address, formData.postalCode, formData.city, formData.country]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -111,6 +221,18 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Email invalide';
+    }
+
+    if (formData.phone && isMobilePhone(formData.phone)) {
+      newErrors.phone = 'Les numéros de portable ne sont pas acceptés. Utilisez un numéro fixe.';
+    }
+
+    if (formData.latitude !== null && formData.latitude !== undefined && (formData.latitude < -90 || formData.latitude > 90)) {
+      newErrors.latitude = 'Latitude invalide (-90 à 90)';
+    }
+
+    if (formData.longitude !== null && formData.longitude !== undefined && (formData.longitude < -180 || formData.longitude > 180)) {
+      newErrors.longitude = 'Longitude invalide (-180 à 180)';
     }
 
     setErrors(newErrors);
@@ -128,6 +250,11 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
       phone: formData.phone || undefined,
       website: formData.website || undefined,
       address: formData.address || undefined,
+      postalCode: formData.postalCode || undefined,
+      city: formData.city || undefined,
+      country: formData.country || undefined,
+      latitude: formData.latitude ?? undefined,
+      longitude: formData.longitude ?? undefined,
       comment: formData.comment || undefined,
     };
 
@@ -171,55 +298,135 @@ export default function SupplierForm({ supplier, onSuccess, onCancel }: Supplier
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Téléphone
+            Téléphone (fixe uniquement)
           </label>
           <Input
             value={formData.phone || ''}
             onChange={(e) => handleChange('phone', e.target.value)}
             placeholder="01 23 45 67 89"
+            className={errors.phone ? 'border-red-500' : ''}
+          />
+          {errors.phone && (
+            <p className="mt-1 text-sm text-red-500 dark:text-red-400">{errors.phone}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Email
+          </label>
+          <Input
+            type="email"
+            value={formData.email || ''}
+            onChange={(e) => handleChange('email', e.target.value)}
+            placeholder="contact@fournisseur.com"
+            className={errors.email ? 'border-red-500' : ''}
+          />
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-500 dark:text-red-400">{errors.email}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Site web
+          </label>
+          <Input
+            value={formData.website || ''}
+            onChange={(e) => handleChange('website', e.target.value)}
+            placeholder="https://www.fournisseur.com"
           />
         </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Email
-        </label>
-        <Input
-          type="email"
-          value={formData.email || ''}
-          onChange={(e) => handleChange('email', e.target.value)}
-          placeholder="contact@fournisseur.com"
-          className={errors.email ? 'border-red-500' : ''}
-        />
-        {errors.email && (
-          <p className="mt-1 text-sm text-red-500 dark:text-red-400">{errors.email}</p>
-        )}
+      {/* Adresse */}
+      <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+        <h4 className="mb-3 text-sm font-medium text-gray-900 dark:text-gray-100">Adresse</h4>
+
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Rue / Adresse
+            </label>
+            <Input
+              value={formData.address || ''}
+              onChange={(e) => handleChange('address', e.target.value)}
+              placeholder="123 rue de la Paix"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Code postal
+              </label>
+              <Input
+                value={formData.postalCode || ''}
+                onChange={(e) => handleChange('postalCode', e.target.value)}
+                placeholder="75001"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Ville
+              </label>
+              <Input
+                value={formData.city || ''}
+                onChange={(e) => handleChange('city', e.target.value)}
+                placeholder="Paris"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Pays
+              </label>
+              <Input
+                value={formData.country || ''}
+                onChange={(e) => handleChange('country', e.target.value)}
+                placeholder="France"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Site web
-        </label>
-        <Input
-          value={formData.website || ''}
-          onChange={(e) => handleChange('website', e.target.value)}
-          placeholder="https://www.fournisseur.com"
-        />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Adresse
-        </label>
-        <textarea
-          value={formData.address || ''}
-          onChange={(e) => handleChange('address', e.target.value)}
-          placeholder="Adresse complète"
-          rows={2}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-        />
-      </div>
+      {/* Indicateur de géolocalisation */}
+      {(formData.address || formData.postalCode || formData.city) && (
+        <div className="flex items-center gap-2 text-sm">
+          {isGeocoding ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              <span className="text-gray-500 dark:text-gray-400">Recherche des coordonnées GPS...</span>
+            </>
+          ) : geocodeStatus === 'success' && formData.latitude && formData.longitude ? (
+            <>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-green-600 dark:text-green-400">
+                Coordonnées GPS trouvées
+              </span>
+              <a
+                href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 text-primary-600 hover:underline dark:text-primary-400"
+              >
+                <MapPin className="inline h-3.5 w-3.5" /> Voir sur la carte
+              </a>
+            </>
+          ) : geocodeStatus === 'error' ? (
+            <>
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <span className="text-yellow-600 dark:text-yellow-400">
+                Adresse non trouvée - vérifiez les informations
+              </span>
+            </>
+          ) : null}
+        </div>
+      )}
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
