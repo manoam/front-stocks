@@ -1,32 +1,44 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, Eye } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, Globe, Eye, Filter } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
+import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import SupplierForm from '../components/forms/SupplierForm';
 import { useToast } from '../components/ui/Toast';
 import Pagination from '../components/ui/Pagination';
 import api from '../services/api';
-import type { Supplier, PaginatedResponse } from '../types';
+import type { Supplier, PaginatedResponse, AssemblyType, ApiResponse } from '../types';
 
 export default function Suppliers() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [assemblyTypeId, setAssemblyTypeId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<Supplier | null>(null);
 
+  // Fetch assembly types for filter
+  const { data: assemblyTypes } = useQuery({
+    queryKey: ['assembly-types'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<AssemblyType[]>>('/assembly-types');
+      return res.data.data;
+    },
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ['suppliers', page, search],
+    queryKey: ['suppliers', page, search, assemblyTypeId],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
         ...(search && { search }),
+        ...(assemblyTypeId && { assemblyTypeId }),
       });
       const res = await api.get<PaginatedResponse<Supplier>>(`/suppliers?${params}`);
       return res.data;
@@ -167,18 +179,38 @@ export default function Suppliers() {
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher un fournisseur..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un fournisseur..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400 hidden sm:block" />
+            <Select
+              value={assemblyTypeId}
+              onChange={(e) => {
+                setAssemblyTypeId(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 w-full sm:w-48"
+            >
+              <option value="">Tous les types d'assemblage</option>
+              {assemblyTypes?.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
         <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />

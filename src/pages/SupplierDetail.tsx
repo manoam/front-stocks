@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Calendar,
   Clock,
-  User,
+  CheckCircle,
+  Hash,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -33,11 +34,23 @@ interface SupplierWithRelations extends Supplier {
       id: string;
       reference: string;
       description?: string;
+      photoUrl?: string;
       group?: { name: string };
     };
   })[];
   orders: Order[];
 }
+
+// Helper to get full image URL
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
+const DEFAULT_PRODUCT_IMAGE = '/default-product.svg';
+
+const getFullImageUrl = (url: string | null | undefined): string => {
+  if (!url) return DEFAULT_PRODUCT_IMAGE;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads')) return `${API_BASE_URL}${url}`;
+  return url;
+};
 
 export default function SupplierDetail() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +59,7 @@ export default function SupplierDetail() {
   const toast = useToast();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditingComment, setIsEditingComment] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [commentValue, setCommentValue] = useState('');
 
   const { data, isLoading, error } = useQuery({
@@ -317,8 +331,8 @@ export default function SupplierDetail() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    <th className="pb-2">Référence</th>
                     <th className="pb-2">Description</th>
+                    <th className="pb-2">Référence</th>
                     <th className="pb-2">Groupe</th>
                     <th className="pb-2">Réf. fournisseur</th>
                     <th className="pb-2 text-right">Prix HT</th>
@@ -332,13 +346,23 @@ export default function SupplierDetail() {
                       <td className="py-2">
                         <RouterLink
                           to={`/products/${ps.product.id}`}
-                          className="font-medium text-primary-600 hover:underline dark:text-primary-400"
+                          className="flex items-center gap-3 group"
                         >
-                          {ps.product.reference}
+                          <img
+                            src={getFullImageUrl(ps.product.photoUrl)}
+                            alt={ps.product.description || ps.product.reference}
+                            className="h-10 w-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-700 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
+                            }}
+                          />
+                          <span className="font-medium text-primary-600 group-hover:underline dark:text-primary-400">
+                            {ps.product.description || ps.product.reference}
+                          </span>
                         </RouterLink>
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {ps.product.description || '-'}
+                        {ps.product.reference}
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">
                         {ps.product.group?.name || '-'}
@@ -382,18 +406,28 @@ export default function SupplierDetail() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    <th className="pb-2">Date</th>
+                    <th className="pb-2">ID</th>
+                    <th className="pb-2">Date commande</th>
                     <th className="pb-2">Produit</th>
                     <th className="pb-2 text-right">Quantité</th>
                     <th className="pb-2">Statut</th>
                     <th className="pb-2">Date prévue</th>
+                    <th className="pb-2">Date réception</th>
                     <th className="pb-2">Destination</th>
-                    <th className="pb-2">Responsable</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {data.orders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <td className="py-2">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="flex items-center gap-1 font-medium text-primary-600 hover:underline dark:text-primary-400"
+                        >
+                          <Hash className="h-3.5 w-3.5" />
+                          {order.id.slice(0, 8)}
+                        </button>
+                      </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
@@ -428,17 +462,17 @@ export default function SupplierDetail() {
                         )}
                       </td>
                       <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {order.destinationSite?.name || '-'}
-                      </td>
-                      <td className="py-2 text-gray-600 dark:text-gray-400">
-                        {order.responsible ? (
-                          <div className="flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" />
-                            {order.responsible}
+                        {order.receivedDate ? (
+                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            {new Date(order.receivedDate).toLocaleDateString('fr-FR')}
                           </div>
                         ) : (
                           '-'
                         )}
+                      </td>
+                      <td className="py-2 text-gray-600 dark:text-gray-400">
+                        {order.destinationSite?.name || '-'}
                       </td>
                     </tr>
                   ))}
@@ -465,6 +499,121 @@ export default function SupplierDetail() {
           }}
           onCancel={() => setIsEditModalOpen(false)}
         />
+      </Modal>
+
+      {/* Order Detail Modal */}
+      <Modal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={`Détail de la commande #${selectedOrder?.id.slice(0, 8) || ''}`}
+        size="lg"
+      >
+        {selectedOrder && (
+          <div className="space-y-4">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">ID Commande</dt>
+                <dd className="mt-1 font-mono text-sm text-gray-900 dark:text-gray-100">{selectedOrder.id}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Statut</dt>
+                <dd className="mt-1">{getStatusBadge(selectedOrder.status)}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Produit</dt>
+                <dd className="mt-1">
+                  <RouterLink
+                    to={`/products/${selectedOrder.productId}`}
+                    className="text-primary-600 hover:underline dark:text-primary-400"
+                    onClick={() => setSelectedOrder(null)}
+                  >
+                    {selectedOrder.product?.reference || selectedOrder.productId}
+                  </RouterLink>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Quantité commandée</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">{selectedOrder.quantity}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Date de commande</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                  {new Date(selectedOrder.orderDate).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Date prévue</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                  {selectedOrder.expectedDate
+                    ? new Date(selectedOrder.expectedDate).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                    : '-'}
+                </dd>
+              </div>
+              {selectedOrder.status === 'COMPLETED' && (
+                <>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Date de réception</dt>
+                    <dd className="mt-1 text-green-600 dark:text-green-400">
+                      {selectedOrder.receivedDate
+                        ? new Date(selectedOrder.receivedDate).toLocaleDateString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })
+                        : '-'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Quantité reçue</dt>
+                    <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                      {selectedOrder.receivedQty ?? selectedOrder.quantity}
+                      {selectedOrder.receivedQty !== undefined && selectedOrder.receivedQty !== selectedOrder.quantity && (
+                        <span className="ml-2 text-sm text-yellow-600 dark:text-yellow-400">
+                          (différent de la commande)
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                </>
+              )}
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Destination</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">
+                  {selectedOrder.destinationSite?.name || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Responsable</dt>
+                <dd className="mt-1 text-gray-900 dark:text-gray-100">{selectedOrder.responsible || '-'}</dd>
+              </div>
+              {selectedOrder.supplierRef && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Réf. fournisseur</dt>
+                  <dd className="mt-1 text-gray-900 dark:text-gray-100">{selectedOrder.supplierRef}</dd>
+                </div>
+              )}
+              {selectedOrder.comment && (
+                <div className="col-span-2">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Commentaire</dt>
+                  <dd className="mt-1 text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                    {selectedOrder.comment}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button onClick={() => setSelectedOrder(null)}>Fermer</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
