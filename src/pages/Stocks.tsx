@@ -45,7 +45,7 @@ export default function Stocks() {
     queryKey: ['stocks'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<StockWithDetails[]>>('/stocks');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -54,7 +54,7 @@ export default function Stocks() {
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

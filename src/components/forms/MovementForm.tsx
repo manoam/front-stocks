@@ -72,7 +72,7 @@ export default function MovementForm({ onSuccess, onCancel, preselectedProductId
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

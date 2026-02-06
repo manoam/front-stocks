@@ -22,7 +22,7 @@ export default function Sites() {
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

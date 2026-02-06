@@ -66,7 +66,7 @@ export default function OrderForm({ onSuccess, onCancel, preselectedProductId, p
     queryKey: ['suppliers'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Supplier[]>>('/suppliers');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -75,7 +75,7 @@ export default function OrderForm({ onSuccess, onCancel, preselectedProductId, p
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

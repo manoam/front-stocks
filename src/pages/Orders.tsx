@@ -76,7 +76,7 @@ export default function Orders() {
     queryKey: ['suppliers'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Supplier[]>>('/suppliers');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

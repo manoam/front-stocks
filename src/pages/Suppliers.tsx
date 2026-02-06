@@ -27,7 +27,7 @@ export default function Suppliers() {
     queryKey: ['assembly-types'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<AssemblyType[]>>('/assembly-types');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

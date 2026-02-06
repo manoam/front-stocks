@@ -35,7 +35,7 @@ export default function ProductSearch({
     queryFn: async () => {
       if (!search || search.length < 1) return [];
       const res = await api.get<PaginatedResponse<Product>>(`/products?search=${encodeURIComponent(search)}&limit=15`);
-      return res.data.data;
+      return res.data?.data;
     },
     enabled: search.length >= 1,
   });

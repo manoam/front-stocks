@@ -76,7 +76,7 @@ export default function Movements() {
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

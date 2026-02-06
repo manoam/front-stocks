@@ -95,7 +95,7 @@ export default function ImportExport() {
       const res = await api.post('/import/preview', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return res.data.data as ImportPreview;
+      return res.data?.data as ImportPreview;
     },
     onSuccess: (data) => {
       setPreview(data);
@@ -111,7 +111,7 @@ export default function ImportExport() {
       const res = await api.post('/import', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return res.data.data as ImportResult;
+      return res.data?.data as ImportResult;
     },
     onSuccess: (data) => {
       setImportResult(data);

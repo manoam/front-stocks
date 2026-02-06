@@ -66,7 +66,7 @@ export default function PackMovementForm({ onSuccess, onCancel }: PackMovementFo
     queryKey: ['packs', movementType],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Pack[]>>(`/packs?type=${movementType}`);
-      return res.data.data;
+      return res.data?.data;
     },
     enabled: !!movementType,
   });
@@ -76,7 +76,7 @@ export default function PackMovementForm({ onSuccess, onCancel }: PackMovementFo
     queryKey: ['sites'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Site[]>>('/sites');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

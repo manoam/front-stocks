@@ -36,7 +36,7 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: DashboardStats }>('/dashboard/stats');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -44,7 +44,7 @@ export default function Dashboard() {
     queryKey: ['recent-movements'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: StockMovement[] }>('/dashboard/recent-movements');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -52,7 +52,7 @@ export default function Dashboard() {
     queryKey: ['pending-orders'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: Order[] }>('/dashboard/pending-orders');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -60,7 +60,7 @@ export default function Dashboard() {
     queryKey: ['low-stock-alerts'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: LowStockAlert[] }>('/dashboard/low-stock-alerts?threshold=5');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -68,7 +68,7 @@ export default function Dashboard() {
     queryKey: ['movements-by-day'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: MovementsByDay[] }>('/dashboard/movements-by-day?days=14');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -76,7 +76,7 @@ export default function Dashboard() {
     queryKey: ['stock-by-site'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: StockBySite[] }>('/dashboard/stock-by-site');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
     queryKey: ['orders-by-month'],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: OrdersByMonth[] }>('/dashboard/orders-by-month?months=6');
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

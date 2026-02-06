@@ -92,7 +92,7 @@ export default function Products() {
 
   // Filter assemblies by selected type
   const filteredAssemblies = assemblyTypeId
-    ? assembliesData?.data.filter((assembly) =>
+    ? assembliesData?.data?.filter((assembly) =>
         assembly.assemblyTypes?.some((at: any) =>
           at.assemblyTypeId === assemblyTypeId || at.id === assemblyTypeId
         )
@@ -280,7 +280,7 @@ export default function Products() {
               className="h-9 min-w-[140px] sm:w-44"
             >
               <option value="">Type</option>
-              {assemblyTypesData?.data.map((type) => (
+              {assemblyTypesData?.data?.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>

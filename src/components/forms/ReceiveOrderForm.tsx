@@ -27,7 +27,7 @@ export default function ReceiveOrderForm({ orderId, onSuccess, onCancel }: Recei
     queryKey: ['order', orderId],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Order>>(`/orders/${orderId}`);
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

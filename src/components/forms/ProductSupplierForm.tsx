@@ -40,7 +40,7 @@ export default function ProductSupplierForm({ product, onClose }: ProductSupplie
     queryKey: ['product', product.id],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Product>>(`/products/${product.id}`);
-      return res.data.data;
+      return res.data?.data;
     },
   });
 

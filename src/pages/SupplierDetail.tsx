@@ -65,7 +65,7 @@ export default function SupplierDetail() {
     queryKey: ['supplier', id],
     queryFn: async () => {
       const res = await api.get<ApiResponse<SupplierWithRelations>>(`/suppliers/${id}`);
-      return res.data.data;
+      return res.data?.data;
     },
     enabled: !!id,
   });

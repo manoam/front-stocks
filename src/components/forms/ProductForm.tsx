@@ -202,8 +202,8 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (res.data.success) {
-        handleChange('imageUrl', res.data.data.imageUrl);
+      if (res.data?.success) {
+        handleChange('imageUrl', res.data?.data?.imageUrl);
       }
     } catch (error: any) {
       setErrors(prev => ({ ...prev, image: error.response?.data?.error || 'Erreur lors de l\'upload' }));

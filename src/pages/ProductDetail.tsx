@@ -45,7 +45,7 @@ export default function ProductDetail() {
     queryKey: ['product', id],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Product>>(`/products/${id}`);
-      return res.data.data;
+      return res.data?.data;
     },
     enabled: !!id,
   });
